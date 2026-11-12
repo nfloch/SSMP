@@ -124,7 +124,11 @@ internal class EntityManager {
     public void InitializeSceneHost(uint sceneHostEpoch = 0) {
         Logger.Info($"We are scene host, releasing control of all registered entities (epoch {sceneHostEpoch})");
         IsSceneHost = true;
-        foreach (var entity in _entities.Values) entity.InitializeHost(sceneHostEpoch);
+        foreach (var entity in _entities.Values) {
+            // Local fix: one broken entity (e.g. a destroyed object) must not abort the whole room.
+            try { entity.InitializeHost(sceneHostEpoch); }
+            catch (System.Exception e) { Logger.Warn($"InitializeHost failed for entity {entity.Id}, skipping it: {e.Message}"); }
+        }
         _sceneRoleDetermined = true;
         DrainPendingUpdates();
     }
@@ -135,7 +139,11 @@ internal class EntityManager {
     public void InitializeSceneClient(uint sceneHostEpoch = 0) {
         Logger.Info($"We are scene client, taking control of all registered entities (epoch {sceneHostEpoch})");
         IsSceneHost = false;
-        foreach (var entity in _entities.Values) entity.InitializeClient(sceneHostEpoch);
+        foreach (var entity in _entities.Values) {
+            // Local fix: one broken entity (e.g. a destroyed object) must not abort the whole room.
+            try { entity.InitializeClient(sceneHostEpoch); }
+            catch (System.Exception e) { Logger.Warn($"InitializeClient failed for entity {entity.Id}, skipping it: {e.Message}"); }
+        }
         _sceneRoleDetermined = true;
         DrainPendingUpdates();
     }
@@ -146,7 +154,11 @@ internal class EntityManager {
     public void BecomeSceneHost(uint sceneHostEpoch = 0) {
         Logger.Info($"Becoming scene host (epoch {sceneHostEpoch})");
         IsSceneHost = true;
-        foreach (var entity in _entities.Values) entity.MakeHost(sceneHostEpoch);
+        foreach (var entity in _entities.Values) {
+            // Local fix: one broken entity (e.g. a destroyed object) must not abort the whole room.
+            try { entity.MakeHost(sceneHostEpoch); }
+            catch (System.Exception e) { Logger.Warn($"MakeHost failed for entity {entity.Id}, skipping it: {e.Message}"); }
+        }
 
         // Immediately refresh targeting fields for all active enemies
         GamePatcher.ForceImmediateRetarget();
@@ -263,6 +275,14 @@ internal class EntityManager {
     /// <param name="newScene">The new scene.</param>
     private void OnSceneChanged(Scene oldScene, Scene newScene) {
         Logger.Info("Scene changed, clearing registered entities");
+
+        var restored = 0;
+        foreach (var entity in _entities.Values) {
+            try { if (entity.RestoreForSceneChange(newScene)) restored++; }
+            catch (System.Exception e) { Logger.Warn($"Could not restore pre-loaded entity {entity.Id}: {e.Message}"); }
+        }
+        if (restored > 0) Logger.Info($"Restored {restored} pre-loaded entities entering '{newScene.name}'");
+
         ClearEntities();
 
         if (!_netClient.IsConnected) return;

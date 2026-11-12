@@ -594,7 +594,13 @@ internal class Entity {
         }
 
         if (!_hookedActions.TryGetValue(self, out var hookedEntityAction)) {
-            return;
+            // Local fix: FSMs built from a shared template (e.g. bosses' "Stun Control") are rebuilt
+            // when the object first wakes up, after we indexed them, so their action instances are
+            // new. Match the unknown action by FSM/state/action index and register the new instance.
+            hookedEntityAction = TryRebindAction(self);
+            if (hookedEntityAction == null) {
+                return;
+            }
         }
         //
         //Logger.Info(
@@ -1581,6 +1587,45 @@ internal class Entity {
     /// <summary>
     /// Destroys the entity.
     /// </summary>
+    private HookedEntityAction? TryRebindAction(FsmStateAction self) {
+        if (self.Fsm == null || self.State == null) return null;
+
+        var fsmIndex = _fsms.Host.FindIndex(f => f != null && f.Fsm == self.Fsm);
+        if (fsmIndex < 0) return null;
+
+        var stateIndex = System.Array.IndexOf(_fsms.Host[fsmIndex].FsmStates, self.State);
+        var actionIndex = System.Array.IndexOf(self.State.Actions, self);
+        if (stateIndex < 0 || actionIndex < 0) return null;
+
+        foreach (var existing in _hookedActions.Values) {
+            if (existing.FsmIndex != fsmIndex || existing.StateIndex != stateIndex || existing.ActionIndex != actionIndex) {
+                continue;
+            }
+
+            var entry = new HookedEntityAction {
+                Action = self, FsmIndex = fsmIndex, StateIndex = stateIndex, ActionIndex = actionIndex
+            };
+            _hookedActions[self] = entry;
+            SSMP.Logging.Logger.Info($"Entity ({Id}, {Type}) re-bound rebuilt FSM action {self.Fsm.Name}/{self.State.Name}/{actionIndex}");
+            return entry;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Local fix: when this entity belongs to a scene that was pre-loaded next to the previous one and is now
+    /// becoming the active scene, put its real object back as it was before we hid it, and drop the puppet.
+    /// Otherwise it is re-registered as "originally inactive" and the whole room comes up empty.
+    /// </summary>
+    public bool RestoreForSceneChange(UnityEngine.SceneManagement.Scene newScene) {
+        if (Object.Host == null || Object.Host.scene != newScene) return false;
+
+        Object.Host.SetActive(_originalIsActive);
+        if (Object.Client != null) UnityEngine.Object.Destroy(Object.Client);
+        return true;
+    }
+
     public void Destroy() {
         MonoBehaviourUtil.Instance.OnUpdateEvent -= OnUpdate;
 

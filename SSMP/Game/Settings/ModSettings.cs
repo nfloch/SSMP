@@ -80,7 +80,8 @@ internal class ModSettings : IModSettings {
     /// <inheritdoc/>
     // ReSharper disable once AutoPropertyCanBeMadeGetOnly.Global
     public bool FullSynchronisation {
-        get;
+        // Local build: entity + world sync forced on (no menu exists to turn it on).
+        get => true;
         set {
             if (field == value) return;
             field = value;
