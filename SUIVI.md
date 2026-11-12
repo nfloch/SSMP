@@ -73,7 +73,12 @@ Aucun de ces correctifs n'a encore été vérifié en jeu.
   - b) `breakableRange` ne voit pas le héros.
   - c) Le mur est piloté par un FSM : `GetHero` ou un hook world-sync (TinkEffect IL hook, EnemyTargeting) le
     perturbe.
-- Prochaine étape : lire la structure de Tut_02 dans
+- Log de diagnostic ajouté (`GamePatcher.BreakableDiagnostics.cs`, à retirer une fois le bug compris) : chaque
+  coup sur un `Breakable`, n'importe où dans le jeu, écrit une ligne `[BreakableDiag]` dans `LogOutput.log` avec le
+  résultat (`response`), la condition qui a ignoré le coup (`reason`), `isBroken`, `wasAlreadyBroken` et l'état de
+  `breakableRange`. Si un mur reste incassable ailleurs, chercher sa ligne : `reason` désigne la piste.
+  Aucune ligne pour un mur frappé : `Breakable.Hit` n'est même pas appelé, le problème est en amont.
+- Autre étape possible : lire la structure de Tut_02 dans
   `Hollow Knight Silksong_Data/StreamingAssets/aa/StandaloneWindows64/scenes_scenes_scenes/tut_02.bundle`
   (UnityPy, à installer : `python3 -m venv` a échoué faute d'ensurepip, essayer `uv` ou `apt install python3-venv`).
   Sinon, ajouter un log de diagnostic sur `Breakable.Hit` pour ce mur : `isBroken`, `breakableRange.IsInside`,

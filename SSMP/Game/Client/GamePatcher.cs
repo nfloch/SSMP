@@ -198,6 +198,7 @@ internal partial class GamePatcher {
         AddHook(typeof(HeroController), nameof(HeroController.RecoilDown), HeroControllerOnRecoilDown);
         AddHook(typeof(BouncePod), nameof(BouncePod.Hit), IgnoreRemoteHit<BouncePod>);
         AddHook(typeof(BounceBalloon), nameof(BounceBalloon.Hit), IgnoreRemoteHit<BounceBalloon>);
+        AddHook(typeof(Breakable), nameof(Breakable.Hit), BreakableOnHitDiagnostic);
         AddHook(
             typeof(NailSlashTerrainThunk),
             nameof(NailSlashTerrainThunk.OnCollisionEnter2D),
