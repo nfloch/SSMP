@@ -1,0 +1,81 @@
+# Builds SSMP.dll on every push, on the self-hosted runner (talos-truecharts
+# cluster, scale set "ssmp-runner"), and publishes it two ways:
+#   - a workflow artifact, kept 30 days (needs a GitHub login to download);
+#   - a rolling pre-release "latest-<branch>", whose zip has a stable public
+#     link to hand to other players:
+#     https://github.com/nfloch/SSMP/releases/download/latest-<branch>/SSMP-<branch>.zip
+name: Build DLL
+
+on:
+  push:
+    branches: ["**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-dll-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: "1"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+
+jobs:
+  build:
+    runs-on: ssmp-runner
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # .NET 10 SDK: the code uses C# 14 (`field` keyword).
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build
+        run: dotnet build SSMP/SSMP.csproj -c Release -o out
+
+      - name: Package
+        id: pkg
+        run: |
+          branch="${GITHUB_REF_NAME//\//-}"
+          short="${GITHUB_SHA::7}"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          echo "short=$short" >> "$GITHUB_OUTPUT"
+          mkdir -p dist
+          cp out/SSMP.dll out/SSMP.pdb out/BouncyCastle.Cryptography.dll dist/
+          echo "$GITHUB_SHA" > dist/COMMIT.txt
+          command -v zip >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq zip; }
+          (cd dist && zip -q "../SSMP-$branch.zip" *)
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: SSMP-${{ steps.pkg.outputs.branch }}-${{ steps.pkg.outputs.short }}
+          path: dist/
+          retention-days: 30
+
+      - name: Move rolling tag
+        run: |
+          tag="latest-${{ steps.pkg.outputs.branch }}"
+          git tag -f "$tag" "$GITHUB_SHA"
+          git push -f origin "refs/tags/$tag"
+
+      - name: Publish rolling pre-release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest-${{ steps.pkg.outputs.branch }}
+          name: SSMP ${{ steps.pkg.outputs.branch }} (dernier build)
+          prerelease: true
+          make_latest: false
+          files: SSMP-${{ steps.pkg.outputs.branch }}.zip
+          body: |
+            Build automatique de la branche `${{ github.ref_name }}`, commit ${{ github.sha }}.
+
+            Installation : dézipper et copier `SSMP.dll` et `BouncyCastle.Cryptography.dll` dans
+            le dossier `BepInEx/plugins/SSMP-SSMP/` du profil Cogfly, jeu fermé.
+            Tous les joueurs doivent avoir exactement le même `SSMP.dll` (voir `COMMIT.txt`).

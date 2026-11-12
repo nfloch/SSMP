@@ -18,6 +18,10 @@ DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 PATH=$HOME/.dotnet:$PATH dotnet build SS
 - Installation chez Jojo : les mêmes fichiers, dans le profil Cogfly « Alliance ».
   - Ils sont aussi zippés dans `~/claude-projects/ssmp-world-sync-pour-jojo.zip`.
 - Les deux joueurs doivent avoir exactement le même `SSMP.dll`.
+- Build auto à chaque push (workflow `Build DLL`, runner `ssmp-runner` du cluster) : le zip de la branche est
+  sur `https://github.com/nfloch/SSMP/releases/download/latest-<branche>/SSMP-<branche>.zip`,
+  par exemple [world-sync](https://github.com/nfloch/SSMP/releases/download/latest-world-sync/SSMP-world-sync.zip).
+  `COMMIT.txt` dans le zip donne le commit compilé.
 
 ## Logs
 
