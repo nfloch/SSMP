@@ -168,6 +168,9 @@ Aucun de ces correctifs n'a encore été vérifié en jeu.
   Papaours (connexion de Jojo moyenne ?). Jojo meurt avant la fin : le dernier ennemi devient invisible chez
   Papaours mais continue de le frapper. Piste : bascule d'hôte vers Papaours à la sortie de Jojo, l'objet hôte de
   l'ennemi n'a pas repris l'apparence de la copie (rendu, sprite, couche).
+- Ensuite : Jojo retourne seul dans l'arène, tout va bien. Papaours le rejoint, et Jojo (hôte) est déconnecté à ce
+  moment-là : les ennemis ne bougent plus chez Papaours. Piste : déconnexion brutale (expiration), transfert d'hôte
+  absent ou tardif, alors qu'il marche pour une déconnexion normale.
 
 ### Mur de lianes « One Way VineWall » (Tut_02) incassable
 
