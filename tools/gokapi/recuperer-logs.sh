@@ -43,8 +43,8 @@ mkdir -p "$out"
 api="${GOKAPI_URL%/}/api"
 list="$(curl -sSf -H "apikey: $GOKAPI_API_KEY" -H "showFileRequests: true" "$api/files/list")"
 
-# Uploads of this file request, most recent first: "<id>\t<name>"
-mapfile -t uploads < <(python3 -I -c '
+# Uploads of this file request, most recent first: "<id>\t<name>" (a variable, so that a failure stops the script)
+selected="$(python3 -I -c '
 import json, sys
 files = json.loads(sys.argv[1]) or []
 request_id, count = sys.argv[2], sys.argv[3]
@@ -53,8 +53,10 @@ files.sort(key=lambda f: f.get("UploadDate", 0), reverse=True)
 if count != "all":
     files = files[:int(count)]
 for f in files:
-    print(f"{f[\"Id\"]}\t{f[\"Name\"]}")
-' "$list" "$GOKAPI_REQUEST_ID" "$count")
+    print(f["Id"] + "\t" + f["Name"])
+' "$list" "$GOKAPI_REQUEST_ID" "$count")"
+uploads=()
+[[ -n "$selected" ]] && mapfile -t uploads <<< "$selected"
 
 if [[ ${#uploads[@]} -eq 0 ]]; then
     echo "No upload found for this file request."
