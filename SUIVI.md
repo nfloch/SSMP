@@ -164,6 +164,10 @@ Aucun de ces correctifs n'a encore été vérifié en jeu.
 - 18h12 : Jojo seul dans une salle avec un mini-boss fourmi rouge ; le boss s'enfouit pour une attaque et ne
   réapparaît jamais. Même chose ensuite pour Papaours, entré seul dans la même salle (donc hôte, sans synchro) :
   piste d'un patch SSMP qui casse le boss en solo (réorientation de cible pour la sortie de terre ?).
+- 18h17 : arène lancée par Jojo (hôte), rejointe en cours par Papaours. Ennemis qui se téléportent un peu chez
+  Papaours (connexion de Jojo moyenne ?). Jojo meurt avant la fin : le dernier ennemi devient invisible chez
+  Papaours mais continue de le frapper. Piste : bascule d'hôte vers Papaours à la sortie de Jojo, l'objet hôte de
+  l'ennemi n'a pas repris l'apparence de la copie (rendu, sprite, couche).
 
 ### Mur de lianes « One Way VineWall » (Tut_02) incassable
 
