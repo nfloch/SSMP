@@ -201,6 +201,15 @@ Aucun de ces correctifs n'a encore été vérifié en jeu.
   perte retarde aussi les positions) ; le RTT mesuré sur Steam est faux, donc SSMP ne s'adapte pas à une connexion
   moyenne ; les positions n'ont pas de numéro de séquence.
 
+### Partie du 13/11 soir, build `34ea7c8` (logs pas encore récupérés)
+
+- 20h01 : un ennemi clignote et n'arrive pas à s'initialiser chez Papaours ; chez Jojo, il est en double.
+- Carte : Papaours voit Jojo sur sa carte, mais Jojo ne voit pas Papaours (il ne voit que lui-même).
+- 20h06 : banc acheté par Jojo, resté fermé chez Papaours, qui a dû l'acheter aussi.
+- 20h08 : ennemi buggé chez Jojo, il ne voit qu'un sprite fixe.
+- 20h11 : arène faite ensemble ; Jojo a eu le ralenti de fin sur le dernier ennemi et ses portes se sont ouvertes,
+  mais Papaours est resté bloqué dans l'arène.
+
 ### Mur de lianes « One Way VineWall » (Tut_02) incassable
 
 - Ni l'hôte ni le client ne peuvent le casser. Les deux ont tapé du bon côté, et aucun effet de coup ne s'affiche.
