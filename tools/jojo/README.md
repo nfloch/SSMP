@@ -26,5 +26,5 @@ Envoyer `dist/ssmp-jojo.zip` en privé. Pour récupérer les logs reçus : `tool
 
 Appuyer sur **F8** dès qu'on voit un bug (ou taper `/bug <description>` dans le chat). Si un bug corrigé revient :
 `/bug encore <numéro d'issue>`. Un marqueur `[BUG #n]`
-apparaît dans le chat et un instantané est écrit dans les logs des deux joueurs. Envoyer les logs à la fin de la
-session, comme d'habitude.
+apparaît dans le chat et un instantané est écrit dans les logs des deux joueurs. Les logs partent tout seuls quand on est
+déconnecté ou qu'on quitte le jeu, si on a joué à plusieurs. `envoyer-logs.cmd` reste disponible en secours.

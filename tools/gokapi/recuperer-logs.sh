@@ -121,6 +121,15 @@ with zipfile.ZipFile(sys.argv[1]) as z:
             2) echo "$zip (no log inside)" ;;
             *) echo "$zip: could not extract it, kept on Gokapi" >&2; continue ;;
         esac
+    elif [[ "$name" == *.log.gz ]]; then
+        # Sent by SSMP itself at the end of a session (SSMP/Game/Client/LogUploader.cs)
+        log="$out/${name%.gz}"
+        if gzip -dc "$zip" > "$log"; then
+            echo "$log ($(wc -l < "$log") lines)"
+        else
+            echo "$zip: could not extract it, kept on Gokapi" >&2
+            continue
+        fi
     else
         echo "$zip"
     fi

@@ -49,6 +49,13 @@ DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 PATH=$HOME/.dotnet:$PATH dotnet build SS
   écrit alors dans son log un instantané de son propre état : salle, hôte de la salle, joueur local, et pour chaque
   entité ses objets hôte et client (actif, visible, collider, PV, états de FSM, position).
 - Bug revenu après un correctif : `/bug encore <numéro d'issue>`.
+- Envoi des logs : automatique. À la déconnexion ou en quittant le jeu, SSMP envoie le log sur Gokapi
+  (`LogUploader`), mais seulement si un autre joueur a été connecté pendant la session. Le lien est dans
+  `ssmp-upload.cfg`, à côté de `SSMP.dll`, et l'installateur le copie depuis `ssmp-jojo.config`. Un envoi qui
+  échoue est retenté au prochain lancement. Nom : `ssmp_<session>_<joueur>_<host|client>_<lancement>_<n>.log.gz`.
+  L'identifiant de session est créé à chaque démarrage du serveur. `tools/bugs/assembler-logs.py` reconstitue un
+  log par joueur et par session (relances et reconnexions comprises). `envoyer-logs.cmd` reste disponible en
+  secours.
 - Suivi : une issue par bug dans le dépôt **privé** [nfloch/ssmp-bugs](https://github.com/nfloch/ssmp-bugs)
   (labels de statut, un milestone par session, extraits des logs dans `sessions/`). Procédure : skill
   `/ssmp-debug` (`.claude/skills/ssmp-debug/SKILL.md`). Claude attend les envois de Jojo

@@ -3,7 +3,9 @@
 # Claude session running it in the background wakes up.
 #
 # usage: tools/bugs/attendre-logs.sh upload [-i <seconds>] [-t <hours>]
-#          waits until an upload from another player than Papaours is on Gokapi (exit 0)
+#          waits for the end of a co-op session (exit 0): an upload sent by SSMP from the server host
+#          ("ssmp_<session>_<player>_host_…", sent when the host stops the server or quits), then 2 more minutes for
+#          the other players' uploads; or a log sent by hand by another player than Papaours (envoyer-logs)
 #        tools/bugs/attendre-logs.sh jeu-ferme [-i <seconds>] [-t <hours>]
 #          waits until Silksong is no longer running on this PC (exit 0)
 #   -i  check interval (default 120 s for upload, 20 s for jeu-ferme)
@@ -37,19 +39,23 @@ game_running() {
     tasklist.exe /FI "IMAGENAME eq Hollow Knight Silksong.exe" /NH 2>/dev/null | grep -qi "silksong"
 }
 
-other_upload() {
-    # "<id>\t<name>" lines; Papaours' own uploads are made and fetched by Claude, they don't count
+session_over() {
     local list
     list="$("$here/../gokapi/recuperer-logs.sh" -l -n all 2>/dev/null)" || return 1
+    # Sent by SSMP when the host stops the server or quits: the session is over
+    grep -q "^.*ssmp_.*_host_" <<<"$list" && return 0
+    # Sent by hand with envoyer-logs; Papaours' own manual uploads are made and fetched by Claude
     grep -v -- "-Papaours-" <<<"$list" | grep -q "LogOutput-"
 }
 
 while (( $(date +%s) < deadline )); do
     case "$mode" in
         upload)
-            if other_upload; then
-                echo "New upload on Gokapi:"
-                "$here/../gokapi/recuperer-logs.sh" -l -n all | grep -v -- "-Papaours-"
+            if session_over; then
+                # Leave time for the other players' games to send their logs
+                sleep 120
+                echo "Session over, uploads on Gokapi:"
+                "$here/../gokapi/recuperer-logs.sh" -l -n all
                 exit 0
             fi
             ;;

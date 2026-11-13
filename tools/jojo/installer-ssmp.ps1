@@ -80,6 +80,15 @@ try {
     }
     Copy-Item (Join-Path $source "COMMIT.txt") (Join-Path $plugin "SSMP-COMMIT.txt") -Force
 
+    # Lien d'envoi automatique des logs en fin de session (lu par SSMP, à côté de SSMP.dll)
+    $config = Join-Path $PSScriptRoot "ssmp-jojo.config"
+    $lien = if (Test-Path $config) { Get-Content $config | Where-Object { $_ -match '^\s*UploadUrl\s*=' } | Select-Object -First 1 }
+    if ($lien) {
+        Set-Content -Path (Join-Path $plugin "ssmp-upload.cfg") -Value $lien.Trim() -Encoding ASCII
+    } else {
+        Write-Host "Pas de lien UploadUrl dans $config : les logs ne seront pas envoyés automatiquement." -ForegroundColor Yellow
+    }
+
     $commit = (Get-Content (Join-Path $source "COMMIT.txt") -Raw).Trim()
     $hash = (Get-FileHash $actuel -Algorithm SHA256).Hash.Substring(0, 16).ToLower()
     Write-Host ""

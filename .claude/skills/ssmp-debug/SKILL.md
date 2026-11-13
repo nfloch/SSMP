@@ -1,6 +1,6 @@
 ---
 name: ssmp-debug
-description: Run a co-op SSMP debug session end to end. Wait for Jojo's log upload, collect both players' logs (Papaours' only once his game is closed), split them per F8/"/bug" marker, open one issue per bug in the private nfloch/ssmp-bugs tracker, dispatch one agent per bug in a git worktree, then integrate the fixes on world-sync and report. Use when the user says "lance le debug", "surveille les logs", "/ssmp-debug", or gives the end-of-session go.
+description: Run a co-op SSMP debug session end to end. Wait for the end of the session (SSMP sends each player's log by itself), rebuild one log per player and session, split them per F8/"/bug" marker, open one issue per bug in the private nfloch/ssmp-bugs tracker, dispatch one agent per bug in a git worktree, then integrate the fixes on world-sync and report. Use when the user says "lance le debug", "surveille les logs", "/ssmp-debug", or gives the end-of-session go.
 ---
 
 # SSMP debug session
@@ -10,7 +10,8 @@ and every game logs a `[BUG]` snapshot. `/bug encore <issue>` means that the bug
 SSMP log lines carry the local time, and `[Inventory]` lines record each player's inventory at game entry and at benches.
 
 Paths (run from the SSMP repo root, `world-sync` branch):
-- Tools: `tools/bugs/attendre-logs.sh`, `tools/bugs/decouper-logs.py`, `tools/gokapi/recuperer-logs.sh`,
+- Tools: `tools/bugs/attendre-logs.sh`, `tools/bugs/assembler-logs.py`, `tools/bugs/decouper-logs.py`,
+  `tools/gokapi/recuperer-logs.sh`,
   `tools/jojo/envoyer-logs.ps1`
 - Tracker clone: `../ssmp-bugs` (`git@github.com:nfloch/ssmp-bugs.git`, **private**). Issues: `gh ... -R nfloch/ssmp-bugs`
 - Processed markers: `~/.local/state/ssmp/markers.json`
@@ -22,36 +23,42 @@ Rules:
 - The public repo must never receive log excerpts. Issues and extracts go to the private tracker only.
 - Keep the user's task list updated at each step, and finish with a report per issue.
 
-## 1. Wait for logs
+## 1. Wait for the end of a session
 
-Run `tools/bugs/attendre-logs.sh upload` with `run_in_background`. It costs nothing while it waits, and its exit
-wakes you up. Don't poll it. Exit 2 means it gave up after 8 h: tell the user.
+SSMP sends each player's log by itself (`SSMP/Game/Client/LogUploader.cs`) when the player is disconnected or quits,
+but only if another player was connected at the same time. The upload name is
+`ssmp_<session>_<player>_<host|client>_<game start>_<n>.log.gz`, and the session id is generated at each server start.
+
+Run `tools/bugs/attendre-logs.sh upload` with `run_in_background`. It exits once the host's upload is on Gokapi (the
+host stopped the server or quit), plus 2 minutes for the others. It costs nothing while it waits, and its exit wakes
+you up. Don't poll it. Exit 2 means it gave up after 8 h: tell the user.
 
 If the user gave the end-of-session go directly, skip the wait.
 
-## 2. Collect both logs
+## 2. Collect and rebuild the logs
 
-1. Fetch every pending upload: `tools/gokapi/recuperer-logs.sh -n all`. Logs land in Windows `Downloads\ssmp-logs\`.
-2. If Silksong is running (`tasklist.exe | grep -i silksong`), run `tools/bugs/attendre-logs.sh jeu-ferme` in the
-   background and wait for it.
-3. Once the game is closed, send Papaours' log and fetch it:
-   `powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(wslpath -w tools/jojo/envoyer-logs.ps1)" -Profil SSMP`,
-   then `tools/gokapi/recuperer-logs.sh -n all`.
-4. Copy the newest log of each player to the scratchpad as `papa.log` and `jojo.log`. File names are
-   `LogOutput-<windows user>-<profile>-<yyyymmdd>-<hhmm>`: Papaours is `Papaours-SSMP`, and Jojo is the other one
-   (currently `lafam-Alliance`).
+1. Fetch every pending upload: `tools/gokapi/recuperer-logs.sh -n all`. Logs land in Windows `Downloads\ssmp-logs\`,
+   and `.log.gz` files are extracted.
+2. Rebuild one log per player and session:
+   `python3 -I tools/bugs/assembler-logs.py --logs /mnt/c/Users/Papaours/Downloads/ssmp-logs --out <scratchpad>/sessions`.
+   Several uploads of one game start keep the largest. Several game starts (restarts, reconnections) are joined in
+   order, with a `===== game restarted` separator. Only the part after `[Session] Joined session <id>` is kept. The
+   JSON summary gives each player's role (host/client), their game starts and the merged log path.
+3. Fallback for logs sent by hand (`LogOutput-…` from envoyer-logs, or an SSMP build without LogUploader): use them as
+   they are. Never take Papaours' log while his game is running: wait with `tools/bugs/attendre-logs.sh jeu-ferme`,
+   then send it with `powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(wslpath -w tools/jojo/envoyer-logs.ps1)" -Profil SSMP`.
 
 ## 3. Split per marker
 
-Session id: `<yyyy-mm-dd>_<hhmm>` of Papaours' log file name.
+Use the session id from step 2, one `--log <player>=<merged log>` per player:
 
 ```bash
 python3 -I tools/bugs/decouper-logs.py --out ../ssmp-bugs/sessions/<session> \
-  --state ~/.local/state/ssmp/markers.json --log papa=<papa.log> --log jojo=<jojo.log>
+  --state ~/.local/state/ssmp/markers.json --log Papaours=<…/Papaours.log> --log Jojo=<…/Jojo.log>
 ```
 
 It prints `new_bugs` as JSON: number, reporter, scene, description, the marker's time in each log, and its folder.
-Each folder has `papa.txt`/`jojo.txt` (snapshot + about 90 s of filtered log) and `meta.json`. Also read
+Each folder has one `<player>.txt` per player (snapshot + about 90 s of filtered log) and `meta.json`. Also read
 `anomalies.txt`: it lists known error patterns found even without a marker. Create an `[ANOMALIE]` issue for any that
 looks serious, for example an exception repeated hundreds of times or timeouts.
 
@@ -84,10 +91,10 @@ The agents use the default model. Their prompt (fill in the placeholders):
 > You investigate one SSMP co-op bug (Hollow Knight: Silksong multiplayer mod, C#/BepInEx). You work in your own
 > git worktree of the SSMP repo, on branch `bug/<issue>`, created from `world-sync`.
 > - **Inputs:**
->   - Bug folder: `<folder>` (`papa.txt`, `jojo.txt`, `meta.json`). Papaours hosts the server (player id 0), Jojo
+>   - Bug folder: `<folder>` (one `<player>.txt` per player, `meta.json`). Papaours hosts the server (player id 0), Jojo
 >     is id 1, and the scene host is the first player in the room.
 >   - Read `SUIVI.md` first: it lists the fixes and design decisions already made.
->   - Full logs, if the extract is not enough: `<papa.log>` and `<jojo.log>`. Use `grep -n` and `sed -n` on small
+>   - Full logs, if the extract is not enough: the merged logs `<…/Papaours.log>` and `<…/Jojo.log>`. Use `grep -n` and `sed -n` on small
 >     ranges only, never read them whole.
 >   - Decompiled game code, read only: `/home/papaours/claude-projects/ssmp-build/game-src`.
 >   - Game FSMs: `tools/fsm/README.md`.
