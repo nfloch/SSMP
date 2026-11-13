@@ -161,6 +161,8 @@ Aucun de ces correctifs n'a encore été vérifié en jeu.
   par FSM, non couverte par le correctif 5).
 - 16h14 : baie de mousse lâchée par un ennemi tué par Jojo, restée en l'air chez Papaours.
 - 18h02 (partie du soir) : un ennemi buggé chez Papaours. En attente des logs et des notes de la partie.
+- 18h12 : Jojo seul dans une salle avec un mini-boss fourmi rouge ; le boss s'enfouit pour une attaque et ne
+  réapparaît jamais.
 
 ### Mur de lianes « One Way VineWall » (Tut_02) incassable
 
