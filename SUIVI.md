@@ -131,11 +131,7 @@ Aucun de ces correctifs n'a encore été vérifié en jeu.
 
 ## Outils
 
-- Lire un FSM du jeu : `uv` via mise (`ssmp-build/mise.toml`), venv `ssmp-build/unitypy-venv` avec UnityPy.
-  Il faut `UnityPy.config.FALLBACK_UNITY_VERSION = "6000.0.50f1"`. Les scènes sont dans
-  `StreamingAssets/aa/StandaloneWindows64/scenes_scenes_scenes/<scene>.bundle` ; les paramètres d'action se décodent
-  avec l'enum `ParamDataType` de `PlayMaker.dll`.
-
+- Lire un FSM du jeu (états, actions, cibles) : voir [`tools/fsm/`](tools/fsm/README.md).
 - Jeu décompilé : `~/claude-projects/ssmp-build/game-src`, produit avec `ilspycmd`.
   - Lancer `ilspycmd` avec `PATH=$HOME/.dotnet:$HOME/.dotnet/tools:$PATH DOTNET_ROOT=$HOME/.dotnet`.
 - Sous zsh, `grep --include=*.cs` échoue : utiliser `--exclude-dir=obj --exclude-dir=bin`.

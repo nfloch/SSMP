@@ -1,0 +1,3 @@
+[tools]
+# uv runs the scripts and installs their dependencies (declared in each script header) on its own.
+uv = "0.13.7"
