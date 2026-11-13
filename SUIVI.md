@@ -103,11 +103,24 @@ Aucun de ces correctifs n'a encore été vérifié en jeu.
 
 ## Bugs ouverts
 
-### Boss battu par un joueur, toujours vivant pour l'autre (Bell Beast, Bone_05)
+### Boss : chacun sa victoire, mais on peut rejoindre un combat en cours (décision du 13/11)
 
-- `defeatedBellBeast` (comme `defeatedMossMother`) est en `SyncType: Player` : progression propre à chaque joueur.
-  Jojo, mort pendant le combat, est revenu dans un Bone_05 où son jeu faisait réapparaître le boss, invisible pour
-  Papaours. Décision à prendre : partager la victoire (`Server`) ou garder chaque joueur maître de sa progression.
+- Les victoires restent propres à chaque joueur (`defeatedBellBeast` en `SyncType: Player`). Un joueur mort pendant
+  le combat doit pouvoir revenir dans l'arène pendant que l'autre se bat : y entrer, ne plus pouvoir en sortir, et
+  voir le boss synchronisé.
+- Bell Beast (`bone_05_boss.bundle`), lu avec `tools/fsm` :
+  - Murs `Threaded Bell Gate` : ouverts au chargement, fermés par `BG CLOSE`, rouverts par `BG OPEN`, sans état
+    sauvegardé. Celui qui revient trouve donc les murs ouverts et peut entrer.
+  - Zone `Return Battle` (active si `encounteredBellBeast`) : objet local, non synchronisé. En y entrant, le jeu du
+    joueur ferme ses propres murs (`Gate 1`, `Gate 2`), bloque la caméra et envoie `BATTLE START` au boss.
+  - Mort du boss : état `Death Broadcast` → `SendEventToRegister("BEAST DEFEATED")`, qui fait avancer `Battle End`
+    (murs rouverts, cœur de soie, `SetPlayerDataBool`). Cette action n'était pas rejouée chez les clients : celui
+    qui avait rejoint serait resté enfermé. Correctif : synchro de `SendEventToRegister` dans `EntityFsmActions`
+    (log `Broadcasting event register 'BEAST DEFEATED' from scene host`).
+- À vérifier en jeu : un joueur qui meurt et revient pendant le combat de l'autre. Si un joueur a déjà battu le
+  boss, il ne voit pas celui de l'autre : c'est la conséquence de « chacun la sienne ».
+- Cloches qui tombent (`BoneBeast DropBell …`, `BoneBeast AtkBell …`) : objets de décor avec leur propre FSM, que le
+  boss déclenche par `SendEventByName`. Chaque jeu les fait tomber à sa façon, d'où des cloches différentes.
 
 ### À analyser (partie du 13/11 après-midi)
 
@@ -118,7 +131,6 @@ Aucun de ces correctifs n'a encore été vérifié en jeu.
 - 16h04 : écran de Papaours qui tremble quand Jojo frappe de la soie (secousse sans doute envoyée hors du coup,
   par FSM, non couverte par le correctif 5).
 - 16h14 : baie de mousse lâchée par un ennemi tué par Jojo, restée en l'air chez Papaours.
-- 16h18 : cloches du Bell Beast différentes chez les deux joueurs.
 
 ### Mur de lianes « One Way VineWall » (Tut_02) incassable
 

@@ -247,4 +247,28 @@ internal static partial class EntityFsmActions {
     }
 
     #endregion
+
+    #region SendEventToRegister
+
+    /// <summary>Builds network data from the FSM action.</summary>
+    private static bool GetNetworkDataFromAction(EntityNetworkData data, SendEventToRegister action) {
+        return true;
+    }
+
+    /// <summary>
+    /// Applies network data to the FSM action by broadcasting the same global event on this client. Bosses use it
+    /// to announce their death (e.g. "BEAST DEFEATED" for the Bell Beast), which ends the boss scene: without it, a
+    /// player who joined the fight stays locked in the arena after the scene host kills the boss.
+    /// </summary>
+    private static void ApplyNetworkDataFromAction(EntityNetworkData data, SendEventToRegister action) {
+        var eventName = action.eventName?.Value;
+        if (string.IsNullOrEmpty(eventName)) {
+            return;
+        }
+
+        SSMP.Logging.Logger.Info($"Broadcasting event register '{eventName}' from scene host");
+        EventRegister.SendEvent(eventName);
+    }
+
+    #endregion
 }
