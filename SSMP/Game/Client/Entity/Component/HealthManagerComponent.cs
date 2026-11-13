@@ -203,6 +203,28 @@ internal class HealthManagerComponent : EntityComponent {
     }
 
     /// <summary>
+    /// A battle (arena) counts its remaining enemies as the children of its waves. On a client, those are the
+    /// inactive host objects, while the copy that dies is a separate object at the scene root: the battle never
+    /// ends there and its gates stay closed. Takes the dead enemy's host object out of its wave and lets the battle
+    /// count again.
+    /// </summary>
+    private void ReleaseHostFromBattle() {
+        var host = _healthManager.Host;
+        if (host == null) {
+            return;
+        }
+
+        var battleScene = host.GetComponentInParent<BattleScene>(true);
+        if (battleScene == null) {
+            return;
+        }
+
+        Logger.Info($"Entity '{host.name}' died, removing it from the enemies of battle '{battleScene.name}'");
+        host.transform.SetParent(null, true);
+        battleScene.CheckEnemies();
+    }
+
+    /// <summary>
     /// Callback method for when the health manager dies.
     /// </summary>
     private void HealthManagerOnDie(
@@ -231,6 +253,8 @@ internal class HealthManagerComponent : EntityComponent {
                 InvokeOrig();
 
                 _allowDeath = false;
+
+                ReleaseHostFromBattle();
             }
 
             return;
@@ -473,6 +497,8 @@ internal class HealthManagerComponent : EntityComponent {
             if (newHp <= 0 && IsControlled && client != null && client.gameObject.activeSelf) {
                 Logger.Info($"Entity '{client.name}' is already dead on the scene host, hiding it");
                 client.gameObject.SetActive(false);
+
+                ReleaseHostFromBattle();
             }
         } else {
             // Cache once; avoids re-evaluating the IsControlled check twice below on every packet
