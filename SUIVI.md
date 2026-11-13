@@ -92,7 +92,33 @@ Aucun de ces correctifs n'a encore été vérifié en jeu.
     `Tk2dSpriteSetColor` et `FindNamedChild` dans `EntityFsmActions`. Explique sans doute aussi le « on se passe à
     travers » de la première entrée de Jojo dans l'arène.
 
+### Après la partie du 13/11 après-midi (Marrow, Mosstown, Bell Beast)
+
+11. **Banc payant et interrupteur actionnés par le joueur non hôte perdus** (`bell_toll_machine, Bone_01c`,
+    `Bone Lever, Mosstown_01`) : pour un objet persistant, seul l'hôte de la salle envoie le changement, sauf
+    `IgnoreSceneHost`. Correctif : `IgnoreSceneHost: true` pour 129 entrées de `save-data.json` qui ne changent que
+    par un joueur (leviers, interrupteurs, plaques de pression, machines à péage).
+    - Limite : chez les autres, seule la valeur sauvegardée change ; l'objet peut ne bouger qu'en rentrant dans la
+      salle (même mécanisme que l'arène, à traiter au cas par cas).
+
 ## Bugs ouverts
+
+### Boss battu par un joueur, toujours vivant pour l'autre (Bell Beast, Bone_05)
+
+- `defeatedBellBeast` (comme `defeatedMossMother`) est en `SyncType: Player` : progression propre à chaque joueur.
+  Jojo, mort pendant le combat, est revenu dans un Bone_05 où son jeu faisait réapparaître le boss, invisible pour
+  Papaours. Décision à prendre : partager la victoire (`Server`) ou garder chaque joueur maître de sa progression.
+
+### À analyser (partie du 13/11 après-midi)
+
+- 15h53 : Jojo très rapide sur l'écran de Papaours pendant du plateforming, puis normal.
+- 15h55 et 15h58 : Jojo entré en premier (hôte) ; chez Papaours, un ennemi figé ou qui vise mais est intouchable.
+- 16h00 : Jojo prend des dégâts d'une source invisible.
+- 16h03 : corde coupée par Papaours (bloc qui tombe) non répercutée chez Jojo.
+- 16h04 : écran de Papaours qui tremble quand Jojo frappe de la soie (secousse sans doute envoyée hors du coup,
+  par FSM, non couverte par le correctif 5).
+- 16h14 : baie de mousse lâchée par un ennemi tué par Jojo, restée en l'air chez Papaours.
+- 16h18 : cloches du Bell Beast différentes chez les deux joueurs.
 
 ### Mur de lianes « One Way VineWall » (Tut_02) incassable
 
