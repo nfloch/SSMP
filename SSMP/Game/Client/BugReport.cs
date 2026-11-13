@@ -52,8 +52,17 @@ internal class BugReport {
     /// </summary>
     /// <param name="message">The chat message.</param>
     public void OnChatMessage(string message) {
-        if (message.StartsWith(BugCommand.MessagePrefix, StringComparison.Ordinal)) {
+        if (!message.StartsWith(BugCommand.MessagePrefix, StringComparison.Ordinal)) {
+            return;
+        }
+
+        // "[BUG #3] by …" (new bug) or "[BUG #3] also reported by …": snapshot; "[BUG #3] description from …": log only
+        var rest = message[(message.IndexOf("] ", StringComparison.Ordinal) + 2)..];
+        if (rest.StartsWith(BugCommand.NewMarker, StringComparison.Ordinal) ||
+            rest.StartsWith(BugCommand.AlsoReportedMarker, StringComparison.Ordinal)) {
             WriteSnapshot(message);
+        } else {
+            Logger.Info(message);
         }
     }
 
