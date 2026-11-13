@@ -555,4 +555,53 @@ internal static partial class EntityFsmActions {
         var gameObject = fsm?.GetOwnerDefaultTarget(target);
         return gameObject == null ? null : gameObject.GetComponent<Animator>();
     }
+
+    #region SetLayer
+
+    /// <summary>Builds network data from the FSM action.</summary>
+    private static bool GetNetworkDataFromAction(EntityNetworkData data, SetLayer action) {
+        return true;
+    }
+
+    /// <summary>
+    /// Applies network data to the FSM action. Battle enemies that emerge from the background switch layers to start
+    /// colliding with players and attacks, so this must reach clients.
+    /// </summary>
+    private static void ApplyNetworkDataFromAction(EntityNetworkData data, SetLayer action) {
+        var gameObject = action.Fsm.GetOwnerDefaultTarget(action.gameObject);
+        if (gameObject == null) {
+            return;
+        }
+
+        gameObject.layer = action.layer;
+    }
+
+    #endregion
+
+    #region Tk2dSpriteSetColor
+
+    /// <summary>Builds network data from the FSM action.</summary>
+    private static bool GetNetworkDataFromAction(EntityNetworkData data, Tk2dSpriteSetColor action) {
+        return true;
+    }
+
+    /// <summary>
+    /// Applies network data to the FSM action, such as removing the darker tint of an enemy that leaves the
+    /// background.
+    /// </summary>
+    private static void ApplyNetworkDataFromAction(EntityNetworkData data, Tk2dSpriteSetColor action) {
+        var gameObject = action.Fsm.GetOwnerDefaultTarget(action.gameObject);
+        if (gameObject == null) {
+            return;
+        }
+
+        var sprite = gameObject.GetComponent<tk2dBaseSprite>();
+        if (sprite == null) {
+            return;
+        }
+
+        sprite.color = action.color.Value;
+    }
+
+    #endregion
 }

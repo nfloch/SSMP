@@ -479,4 +479,31 @@ internal static partial class EntityFsmActions {
     }
 
     #endregion
+
+    #region FindNamedChild
+
+    /// <summary>Builds network data from the FSM action.</summary>
+    private static bool GetNetworkDataFromAction(EntityNetworkData data, FindNamedChild action) {
+        return true;
+    }
+
+    /// <summary>
+    /// Applies network data to the FSM action. The child is looked up by the name of the variable it is stored in,
+    /// like the game does; later synced actions (e.g. <see cref="ActivateGameObject"/>) read that variable.
+    /// </summary>
+    private static void ApplyNetworkDataFromAction(EntityNetworkData data, FindNamedChild action) {
+        if (action.Fsm == null) {
+            return;
+        }
+
+        var gameObject = action.Fsm.GetOwnerDefaultTarget(action.gameObject);
+        if (gameObject == null) {
+            return;
+        }
+
+        var transform = gameObject.transform.Find(action.storeResult.Name);
+        action.storeResult.Value = transform == null ? null : transform.gameObject;
+    }
+
+    #endregion
 }

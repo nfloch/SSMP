@@ -71,23 +71,19 @@ Aucun de ces correctifs n'a encore été vérifié en jeu.
    chez Papaours, log de 132 Mo) : on lisait chaque frame des objets persistants détruits (géo ramassé). Correctif :
    `PersistentFsmData.Owner`, les données dont l'objet est détruit sont ignorées.
 
+9. **La brute au crâne (`Bone Goomba Large`) ne charge pas vers Jojo** : son FSM `Control` vise la variable globale
+   `Hero` (héros local de l'hôte) dans `FaceObjectV2`, `GetDistance` et `CheckPassedTarget`. Les deux premières étaient
+   déjà réorientées par SSMP, pas `CheckPassedTarget` : si l'hôte est derrière la brute, elle se croit « passée » dès
+   le départ (`Charge` → `PASS` → `No Turn` → `Skid`). Correctif : `CheckPassedTarget` ajouté à
+   `action-registry.json` (`targeted_fsm`).
+10. **Ennemis d'arène « en fond de salle », sans collision, chez le client** : au début du combat la brute passe en
+    couche 2 (`BG Hiding`), puis 14 et enfin 11 (ennemis) en émergeant, avec une teinte d'arrière-plan retirée par
+    `Tk2dSpriteSetColor` et un `Hidden Group` trouvé par `FindNamedChild` puis désactivé. Ces trois actions n'étaient
+    pas rejouées chez le client, qui gardait une copie sans collisions et teintée. Correctif : synchro de `SetLayer`,
+    `Tk2dSpriteSetColor` et `FindNamedChild` dans `EntityFsmActions`. Explique sans doute aussi le « on se passe à
+    travers » de la première entrée de Jojo dans l'arène.
+
 ## Bugs ouverts
-
-### Brute au crâne (`Bone Goomba Large`, type `SkullBrute`) : la charge ne part pas vers Jojo
-
-- Elle prend la pose d'anticipation puis ne charge pas. Probablement une action du FSM `Control` qui vise encore le
-  héros local de l'hôte (le patch `EnemyTargeting` change la cible de départ, pas forcément celle de la charge).
-- Il faut la structure du FSM `Control` (états et actions de la charge) pour savoir quelle action patcher.
-
-### Arène de Bone_01 vue par le client : ennemis « en fond de salle », sans interaction
-
-- Jojo voyait la brute au fond de la salle et ne pouvait pas la toucher ; chez Papaours il la frappait, sans vrais
-  dégâts. Lors de sa première entrée, ni lui ni les ennemis ne se touchaient.
-- Piste : les ennemis de vague arrivent depuis l'arrière-plan (Z décalé, colliders coupés) puis « atterrissent ».
-  Cette transition est jouée par l'hôte et ne semble pas arriver chez le client. `SkullBrute` n'a que le composant
-  `Rotation` dans `entity-registry.json`, sans `ZPosition`.
-- Autre piste : le `BattleScene` du client démarre aussi sa propre vague quand il entre dans l'arène.
-- À vérifier après les correctifs 6 et 7, qui changent ce que voit le client.
 
 ### Mur de lianes « One Way VineWall » (Tut_02) incassable
 
@@ -125,6 +121,11 @@ Aucun de ces correctifs n'a encore été vérifié en jeu.
 - Les correctifs 3 et 4 ci-dessus.
 
 ## Outils
+
+- Lire un FSM du jeu : `uv` via mise (`ssmp-build/mise.toml`), venv `ssmp-build/unitypy-venv` avec UnityPy.
+  Il faut `UnityPy.config.FALLBACK_UNITY_VERSION = "6000.0.50f1"`. Les scènes sont dans
+  `StreamingAssets/aa/StandaloneWindows64/scenes_scenes_scenes/<scene>.bundle` ; les paramètres d'action se décodent
+  avec l'enum `ParamDataType` de `PlayMaker.dll`.
 
 - Jeu décompilé : `~/claude-projects/ssmp-build/game-src`, produit avec `ilspycmd`.
   - Lancer `ilspycmd` avec `PATH=$HOME/.dotnet:$HOME/.dotnet/tools:$PATH DOTNET_ROOT=$HOME/.dotnet`.

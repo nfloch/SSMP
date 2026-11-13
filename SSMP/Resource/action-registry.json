@@ -320,5 +320,11 @@
   {
     "type": "FireAtTarget",
     "targeted_fsm": true
+  },
+  {
+    "type": "CheckPassedTarget",
+    "update_field": "EveryFrame",
+    "transfer_safe_setup": true,
+    "targeted_fsm": true
   }
 ]
