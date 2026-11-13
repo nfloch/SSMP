@@ -205,6 +205,14 @@ internal partial class GamePatcher {
             nameof(CameraManagerReference.DoShakeInRange),
             CameraManagerReferenceOnDoShakeInRange
         );
+        // Shakes that FSMs and scripts send to the camera shake FSM instead of going through CameraManagerReference
+        AddHook(typeof(SendEventByName), nameof(SendEventByName.OnEnter), SendEventByNameOnEnter);
+        AddHook(typeof(SendEventByNameV2), nameof(SendEventByNameV2.OnEnter), SendEventByNameV2OnEnter);
+        AddHook(typeof(SendEventByNameV3), nameof(SendEventByNameV3.OnEnter), SendEventByNameV3OnEnter);
+        _hooks.Add(new Hook(
+            typeof(PlayMakerFSM).GetMethod(nameof(PlayMakerFSM.SendEvent), [typeof(string)])!,
+            PlayMakerFsmOnSendEvent
+        ));
         AddHook(
             typeof(NailSlashTerrainThunk),
             nameof(NailSlashTerrainThunk.OnCollisionEnter2D),
@@ -743,6 +751,11 @@ internal partial class GamePatcher {
         Action<CallMethodProper> orig,
         CallMethodProper self
     ) {
+        // A remote player hitting silk (thick silk vines...) must not give silk to the local player
+        if (_suppressHeroKnockback && self.behaviour.Value == "HeroController" && self.methodName.Value == "AddSilk") {
+            return;
+        }
+
         // If the 'behaviour' and 'methodName' strings do not match, we execute the original method and return
         if (self.behaviour.Value != "HeroController" ||
             self.methodName.Value != "RecoilLeft" &&
@@ -902,6 +915,82 @@ internal partial class GamePatcher {
         }
 
         orig(self, shake, source, range, sourcePos, doFreeze, vibrate);
+    }
+
+    /// <summary>
+    /// Whether the given event is a one-shot shake that is sent to the camera shake FSM ("EnemyKillShake",
+    /// "AverageShake", "BigShake", "SmallShake"...). Rumbles are driven by bools and are left alone.
+    /// </summary>
+    private static bool IsCameraShakeEvent(string? eventName) {
+        return !string.IsNullOrEmpty(eventName) && eventName.EndsWith("Shake", StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Whether the event target of an FSM event action is the camera shake FSM (its object has the "CameraParent"
+    /// tag, or it is the FSM referenced by <see cref="GameCameras.cameraShakeFSM"/>).
+    /// </summary>
+    private static bool TargetsCameraShake(HutongGames.PlayMaker.Fsm fsm, HutongGames.PlayMaker.FsmEventTarget? target) {
+        if (target?.gameObject == null || target.target != HutongGames.PlayMaker.FsmEventTarget.EventTarget.GameObject) {
+            return false;
+        }
+
+        var targetObject = fsm.GetOwnerDefaultTarget(target.gameObject);
+        if (targetObject == null) return false;
+
+        return targetObject.CompareTag("CameraParent") ||
+               GameCameras.instance != null && GameCameras.instance.cameraShakeFSM != null &&
+               targetObject == GameCameras.instance.cameraShakeFSM.gameObject;
+    }
+
+    /// <summary>
+    /// Hook for <see cref="SendEventByName.OnEnter"/>. The thick silk vines (and other breakable FSM objects) shake
+    /// the camera by sending "EnemyKillShake" / "AverageShake" to the camera FSM with this action, which does not go
+    /// through <see cref="CameraManagerReference.DoShake"/>. Skip it while a remote player's attack is processed.
+    /// </summary>
+    private void SendEventByNameOnEnter(Action<SendEventByName> orig, SendEventByName self) {
+        if (_suppressHeroKnockback && IsCameraShakeEvent(self.sendEvent?.Value) &&
+            TargetsCameraShake(self.Fsm, self.eventTarget)) {
+            self.Finish();
+            return;
+        }
+
+        orig(self);
+    }
+
+    /// <summary>Same as <see cref="SendEventByNameOnEnter"/> for <see cref="SendEventByNameV2"/>.</summary>
+    private void SendEventByNameV2OnEnter(Action<SendEventByNameV2> orig, SendEventByNameV2 self) {
+        if (_suppressHeroKnockback && IsCameraShakeEvent(self.sendEvent?.Value) &&
+            TargetsCameraShake(self.Fsm, self.eventTarget)) {
+            self.Finish();
+            return;
+        }
+
+        orig(self);
+    }
+
+    /// <summary>Same as <see cref="SendEventByNameOnEnter"/> for <see cref="SendEventByNameV3"/>.</summary>
+    private void SendEventByNameV3OnEnter(Action<SendEventByNameV3> orig, SendEventByNameV3 self) {
+        if (_suppressHeroKnockback && IsCameraShakeEvent(self.sendEvent?.Value) &&
+            TargetsCameraShake(self.Fsm, self.eventTarget)) {
+            self.Finish();
+            return;
+        }
+
+        orig(self);
+    }
+
+    /// <summary>
+    /// Hook for <see cref="PlayMakerFSM.SendEvent(string)"/> to drop the shakes that scripts send straight to the
+    /// camera shake FSM (<c>GameCameras.instance.cameraShakeFSM.SendEvent("EnemyKillShake")</c>, used by
+    /// <see cref="Breakable"/>, levers, corpses...) while a remote player's attack is processed.
+    /// </summary>
+    private void PlayMakerFsmOnSendEvent(Action<PlayMakerFSM, string> orig, PlayMakerFSM self, string eventName) {
+        if (_suppressHeroKnockback && IsCameraShakeEvent(eventName) && GameCameras.instance != null &&
+            self == GameCameras.instance.cameraShakeFSM) {
+            return;
+        }
+
+        orig(self, eventName);
     }
 
     /// <summary>
