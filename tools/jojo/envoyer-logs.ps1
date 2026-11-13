@@ -1,4 +1,5 @@
 ﻿# Compresse le LogOutput.log de BepInEx et l'envoie sur le Gokapi de Papaours (demande d'upload publique).
+# Le log est supprimé après un envoi réussi.
 #
 # Usage : double-cliquer sur envoyer-logs.cmd, ou
 #   powershell -ExecutionPolicy Bypass -File envoyer-logs.ps1 [-Profil <nom du profil Cogfly>]
@@ -110,6 +111,14 @@ try {
 
     Write-Host ""
     Write-Host "Logs envoyés : $nom" -ForegroundColor Green
+
+    # Supprimé seulement après un envoi réussi, pour ne pas renvoyer les mêmes logs la prochaine fois
+    try {
+        Remove-Item $log -Force
+        Write-Host "Log supprimé : $log"
+    } catch {
+        Write-Host "Log non supprimé (le jeu l'utilise sans doute encore) : $log" -ForegroundColor Yellow
+    }
 } finally {
     $client.Dispose()
     Remove-Item $temp -Recurse -Force -ErrorAction SilentlyContinue

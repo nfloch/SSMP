@@ -6,7 +6,7 @@ Deux scripts à double-cliquer, pour Windows (PowerShell 5.1, installé par déf
   `latest-world-sync`) et l'installe dans le profil Cogfly qui contient SSMP. Le jeu doit être fermé. L'ancienne
   version est gardée en `SSMP.dll.bak`, et le commit installé est écrit dans `SSMP-COMMIT.txt`.
 - **`envoyer-logs.cmd`** : compresse `BepInEx\LogOutput.log` et l'envoie sur le Gokapi de Papaours, via la demande
-  d'upload dont le lien est dans `ssmp-jojo.config`.
+  d'upload dont le lien est dans `ssmp-jojo.config`. Le log est supprimé une fois l'envoi réussi.
 
 S'il y a plusieurs profils Cogfly avec SSMP, les scripts demandent lequel utiliser. On peut aussi le donner :
 `installer-ssmp.cmd -Profil Alliance`.
