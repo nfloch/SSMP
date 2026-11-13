@@ -58,9 +58,10 @@ internal class NetServer : INetServer {
     private readonly AutoResetEvent _processingWaitHandle;
 
     /// <summary>
-    /// Byte array containing leftover data that was not processed as a packet yet.
+    /// Leftover data that was not processed as a packet yet, per transport client. Must be per client: a shared
+    /// buffer glues a partial packet of one client to the data of another, desynchronizing the framing for all.
     /// </summary>
-    private byte[]? _leftoverData;
+    private readonly ConcurrentDictionary<IEncryptedTransportClient, byte[]?> _leftoverData = new();
 
     /// <summary>
     /// Cancellation token source for all threads of the server.
@@ -170,13 +171,20 @@ internal class NetServer : INetServer {
             while (_receivedQueue.TryDequeue(out var receivedData)) {
                 if (token.IsCancellationRequested) break;
 
+                var transportClient = receivedData.TransportClient;
+
+                _leftoverData.TryGetValue(transportClient, out var leftoverData);
                 var packets = PacketManager.HandleReceivedData(
                     receivedData.Buffer,
                     receivedData.NumReceived,
-                    ref _leftoverData
+                    ref leftoverData
                 );
 
-                var transportClient = receivedData.TransportClient;
+                if (leftoverData == null) {
+                    _leftoverData.TryRemove(transportClient, out _);
+                } else {
+                    _leftoverData[transportClient] = leftoverData;
+                }
 
                 // Try to find existing client by transport client reference
                 var client = _clientsById.Values.FirstOrDefault(c => c.TransportClient == transportClient);
@@ -247,6 +255,7 @@ internal class NetServer : INetServer {
         }
 
         client.Dispose();
+        _leftoverData.TryRemove(client.TransportClient, out _);
         _transportServer?.DisconnectClient(client.TransportClient);
         _clientsById.TryRemove(id, out _);
 
@@ -403,7 +412,7 @@ internal class NetServer : INetServer {
         _taskTokenSource = null;
 
         // Clear leftover data
-        _leftoverData = null;
+        _leftoverData.Clear();
 
         // Deregister the client info handler to prevent leaks when restarting the server
         _packetManager.DeregisterServerConnectionPacketHandler(ServerConnectionPacketId.ClientInfo);
@@ -446,6 +455,7 @@ internal class NetServer : INetServer {
         }
 
         client.Dispose();
+        _leftoverData.TryRemove(client.TransportClient, out _);
         _transportServer?.DisconnectClient(client.TransportClient);
         _clientsById.TryRemove(id, out _);
 

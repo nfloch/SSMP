@@ -66,7 +66,7 @@ internal sealed class SteamEncryptedTransport : IReliableTransport {
     /// <summary>
     /// Buffer for receiving P2P packets (aligned for better cache performance).
     /// </summary>
-    private readonly byte[] _receiveBuffer = new byte[SteamMaxPacketSize];
+    private byte[] _receiveBuffer = new byte[SteamMaxPacketSize];
 
     /// <summary>
     /// Token source for cancelling the receive loop.
@@ -205,12 +205,17 @@ internal sealed class SteamEncryptedTransport : IReliableTransport {
         var remoteSteamId = _remoteSteamId;
 
         // Drain ALL available packets (matches server-side behavior)
-        while (SteamNetworking.IsP2PPacketAvailable(out var packetSize, ServerChannel)) {
+        while (SteamNetworking.IsP2PPacketAvailable(out var availableSize, ServerChannel)) {
+            // Reliable messages can exceed SteamMaxPacketSize; a fixed-size buffer would truncate them
+            if (availableSize > receiveBuffer.Length) {
+                receiveBuffer = _receiveBuffer = new byte[availableSize];
+            }
+
             // Client listens for server packets on Channel 1
             if (!SteamNetworking.ReadP2PPacket(
                     receiveBuffer,
-                    SteamMaxPacketSize,
-                    out packetSize,
+                    (uint) receiveBuffer.Length,
+                    out var packetSize,
                     out var senderSteamId,
                     ServerChannel
                 )) {
@@ -225,7 +230,7 @@ internal sealed class SteamEncryptedTransport : IReliableTransport {
                 continue;
             }
 
-            var size = (int)packetSize;
+            var size = (int) System.Math.Min(packetSize, (uint) receiveBuffer.Length);
 
             // Allocate a copy for safety - handlers may hold references
             var data = new byte[size];

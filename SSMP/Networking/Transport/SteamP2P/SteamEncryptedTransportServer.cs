@@ -45,7 +45,7 @@ internal sealed class SteamEncryptedTransportServer : IEncryptedTransportServer 
     /// <summary>
     /// Buffer for receiving P2P packets (aligned for better cache performance).
     /// </summary>
-    private readonly byte[] _receiveBuffer = new byte[MaxPacketSize];
+    private byte[] _receiveBuffer = new byte[MaxPacketSize];
 
     /// <summary>
     /// Whether the server is currently running.
@@ -312,11 +312,18 @@ internal sealed class SteamEncryptedTransportServer : IEncryptedTransportServer 
         var clients = _clients;
 
         // Server listens for client packets on Channel 0
-        while (SteamNetworking.IsP2PPacketAvailable(out var packetSize)) {
+        while (SteamNetworking.IsP2PPacketAvailable(out var availableSize)) {
+            // Reliable P2P messages can be much larger than MaxPacketSize (update packets are not split).
+            // Reading them into a fixed 1200-byte buffer silently truncates them, which desynchronizes the
+            // length-prefixed packet framing. Grow the buffer to the announced message size instead.
+            if (availableSize > receiveBuffer.Length) {
+                receiveBuffer = _receiveBuffer = new byte[availableSize];
+            }
+
             if (!SteamNetworking.ReadP2PPacket(
                     receiveBuffer,
-                    MaxPacketSize,
-                    out packetSize,
+                    (uint) receiveBuffer.Length,
+                    out var packetSize,
                     out var remoteSteamId
                 )) {
                 continue;
@@ -324,8 +331,8 @@ internal sealed class SteamEncryptedTransportServer : IEncryptedTransportServer 
 
             // Fast path: direct dictionary lookup
             if (clients.TryGetValue(remoteSteamId, out var client)) {
-                var size = (int)packetSize;
-                
+                var size = (int) System.Math.Min(packetSize, (uint) receiveBuffer.Length);
+
                 // Allocate only for client delivery - unavoidable as client needs owned copy
                 var data = new byte[size];
                 Array.Copy(receiveBuffer, 0, data, 0, size);
