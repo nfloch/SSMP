@@ -48,6 +48,12 @@ DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 PATH=$HOME/.dotnet:$PATH dotnet build SS
 - Le serveur numérote le marqueur et l'annonce dans le chat : `[BUG #3] by Jojo (id 1) in Bone_12`. Chaque jeu
   écrit alors dans son log un instantané de son propre état : salle, hôte de la salle, joueur local, et pour chaque
   entité ses objets hôte et client (actif, visible, collider, PV, états de FSM, position).
+- Bug revenu après un correctif : `/bug encore <numéro d'issue>`.
+- Suivi : une issue par bug dans le dépôt **privé** [nfloch/ssmp-bugs](https://github.com/nfloch/ssmp-bugs)
+  (labels de statut, un milestone par session, extraits des logs dans `sessions/`). Procédure : skill
+  `/ssmp-debug` (`.claude/skills/ssmp-debug/SKILL.md`). Claude attend les envois de Jojo
+  (`tools/bugs/attendre-logs.sh`), attend que le jeu de Papaours soit fermé, découpe les logs par marqueur
+  (`tools/bugs/decouper-logs.py`), confie chaque bug à un agent dans son worktree et intègre les correctifs.
 - En fin de session, un seul « go » : Claude envoie le log de Papaours, récupère ceux de Gokapi, liste les marqueurs
   (`grep "\[BUG #"`), analyse chaque bug autour de son heure et fait un rapport. Il ne demande des précisions que
   si un marqueur reste ambigu.
