@@ -42,6 +42,16 @@ DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 PATH=$HOME/.dotnet:$PATH dotnet build SS
   Gokapi une fois la copie locale en place (`-k` pour les garder). Config dans `~/.config/ssmp/gokapi.env`
   (adresse, id de la demande, clé API d'administration avec les droits « view », « download » et « delete »).
 
+## Sessions de debug : signaler un bug en jouant
+
+- **F8** quand on voit un bug, sans pause ni texte. Ou dans le chat : `/bug <description courte>` (facultatif).
+- Le serveur numérote le marqueur et l'annonce dans le chat : `[BUG #3] by Jojo (id 1) in Bone_12`. Chaque jeu
+  écrit alors dans son log un instantané de son propre état : salle, hôte de la salle, joueur local, et pour chaque
+  entité ses objets hôte et client (actif, visible, collider, PV, états de FSM, position).
+- En fin de session, un seul « go » : Claude envoie le log de Papaours, récupère ceux de Gokapi, liste les marqueurs
+  (`grep "\[BUG #"`), analyse chaque bug autour de son heure et fait un rapport. Il ne demande des précisions que
+  si un marqueur reste ambigu.
+
 ## Logs
 
 - Papaours : `%APPDATA%\Cogfly\profiles\SSMP\BepInEx\LogOutput.log`.
