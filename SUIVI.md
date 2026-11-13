@@ -182,6 +182,10 @@ Aucun de ces correctifs n'a encore été vérifié en jeu.
 
 ### Pistes restantes des sessions du 13/11
 
+Pas de nouvelle sauvegarde pour reproduire les bugs des zones déjà passées (décision du 13/11) : la corde, la baie de
+mousse et les cloches de la Bête-Cloche restent classées sans suite, sauf si un cas semblable revient plus loin. Les
+autres peuvent arriver n'importe où et seront repris avec les prochains logs (heures et `[Inventory]`).
+
 - **Corde coupée à 16h03** : probablement le `Bone Lever` de `Mosstown_01` (`mosstown01_shortcut`, `SyncType:
   Player`). Seule la valeur sauvegardée voyage, pas l'animation : l'autre ne voit rien bouger. Pas de correctif.
 - **Baie de mousse en l'air (16h14)** : portée par un `Aspid Collector`, libérée à sa mort par FindChild,
