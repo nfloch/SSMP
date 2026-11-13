@@ -92,6 +92,16 @@ internal class ClientManager : IClientManager {
     private readonly BugReport _bugReport;
 
     /// <summary>
+    /// Sends the log at the end of a co-op session.
+    /// </summary>
+    private readonly LogUploader _logUploader = new();
+
+    /// <summary>
+    /// The server manager, to know whether we host the server we are connected to.
+    /// </summary>
+    private ServerManager? _localServerManager;
+
+    /// <summary>
     /// The save manager instance.
     /// </summary>
     private readonly SaveManager _saveManager;
@@ -264,6 +274,10 @@ internal class ClientManager : IClientManager {
     /// that only need to be done once.
     /// </summary>
     public void Initialize(ServerManager serverManager) {
+        _localServerManager = serverManager;
+        _logUploader.Initialize();
+        _netClient.DisconnectEvent += _logUploader.OnDisconnected;
+
         _playerManager.Initialize();
         _animationManager.Initialize(_serverSettings);
         _mapManager.Initialize();
@@ -670,6 +684,13 @@ internal class ClientManager : IClientManager {
         // Note whether full synchronization is enabled
         _fullSynchronisation = serverInfo.FullSynchronisation;
 
+        _logUploader.OnConnected(
+            serverInfo.SessionId,
+            isHost: _localServerManager != null && _localServerManager.SessionId == serverInfo.SessionId,
+            playerName: _username ?? "player",
+            otherPlayersPresent: serverInfo.PlayerInfos.Count > 0
+        );
+
         // Register hooks and packet handlers before we load into the game
         RegisterHooks();
         RegisterPacketHandlers();
@@ -800,6 +821,8 @@ internal class ClientManager : IClientManager {
 
         // The server does not tell a new player who already has a map icon, so send ours again
         _mapManager.ResendMapIcon();
+
+        _logUploader.OnOtherPlayerConnected();
 
         try {
             PlayerConnectEvent?.Invoke(playerData);

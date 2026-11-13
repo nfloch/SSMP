@@ -420,6 +420,11 @@ internal abstract class ServerManager : IServerManager {
     /// <param name="port">The port the server should run on.</param>
     /// <param name="fullSynchronisation">Whether full synchronisation should be enabled.</param>
     /// <param name="transportServer">The transport server to use.</param>
+    /// <summary>
+    /// Identifier of the current server session, one per server start.
+    /// </summary>
+    public string SessionId { get; private set; } = "";
+
     public virtual void Start(int port, bool fullSynchronisation, IEncryptedTransportServer transportServer) {
         lock (_serverStateLock) {
             // Stop existing server (including deregistering commands)
@@ -429,6 +434,10 @@ internal abstract class ServerManager : IServerManager {
             }
 
             FullSynchronisation = fullSynchronisation;
+
+            // Groups the logs of this co-op session: sent to every player at login, written in every log
+            SessionId = $"{DateTime.Now:yyyyMMdd-HHmm}-{Guid.NewGuid().ToString("N")[..4]}";
+            Logger.Info($"[Session] Server session {SessionId} started");
 
             RegisterCommands();
             RegisterPacketHandlers();
@@ -1581,6 +1590,7 @@ internal abstract class ServerManager : IServerManager {
         };
 
         serverInfo.FullSynchronisation = FullSynchronisation;
+        serverInfo.SessionId = SessionId;
 
         // Construct the player info to send to the new client in the server info
         var playerInfo = new List<ServerInfo.PlayerInfo>();

@@ -57,6 +57,11 @@ internal class ServerInfo : IPacketData {
     /// </summary>
     public List<PlayerInfo> PlayerInfos { get; set; } = null!;
 
+    /// <summary>
+    /// Identifier of the server session (one per server start), used to group the logs of a co-op session.
+    /// </summary>
+    public string SessionId { get; set; } = "";
+
     /// <inheritdoc />
     public void WriteData(IPacket packet) {
         packet.Write((byte) ConnectionResult);
@@ -81,6 +86,8 @@ internal class ServerInfo : IPacketData {
             foreach (var playerInfo in PlayerInfos) {
                 playerInfo.WriteData(packet);
             }
+
+            packet.Write(SessionId);
 
             return;
         }
@@ -129,6 +136,8 @@ internal class ServerInfo : IPacketData {
             for (var i = 0; i < length; i++) {
                 PlayerInfos.Add(PlayerInfo.ReadData(packet));
             }
+
+            SessionId = packet.ReadString();
 
             return;
         }
