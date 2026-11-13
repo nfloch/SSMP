@@ -76,7 +76,8 @@ internal class ClientConnectionManager : ConnectionManager {
             ServerConnectionPacketId.ClientInfo, new ClientInfo {
                 Username = username,
                 AuthKey = authKey,
-                AddonData = addonData
+                AddonData = addonData,
+                Commit = Ui.SelfUpdater.InstalledCommit
             }
         );
 

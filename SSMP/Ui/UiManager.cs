@@ -58,6 +58,21 @@ internal class UiManager : IUiManager {
     /// Localization sheet name for main menu text.
     /// </summary>
     private const string MainMenuSheet = "MainMenu";
+
+    /// <summary>
+    /// The name of the SSMP update button of the main menu.
+    /// </summary>
+    private const string UpdateButtonName = "SSMPUpdateButton";
+
+    /// <summary>
+    /// The localization key of the SSMP update button.
+    /// </summary>
+    private const string UpdateButtonKey = "SSMPUpdateBtn";
+
+    /// <summary>
+    /// The update state shown by the update button, to refresh it when it changes.
+    /// </summary>
+    private int _shownUpdateStateVersion = -1;
     
     /// <summary>
     /// Name of the back button in save profile menu.
@@ -282,6 +297,9 @@ internal class UiManager : IUiManager {
         SetupUi();
         
         MonoBehaviourUtil.Instance.OnUpdateEvent += CheckKeyBinds;
+
+        SelfUpdater.Initialize();
+        MonoBehaviourUtil.Instance.OnUpdateEvent += RefreshUpdateButton;
         
         // Hook to make sure that after game completion cutscenes we do not head to the main menu, but stay hosting/
         // connected to the server. Otherwise, if the host would go to the main menu, every other player would be
@@ -388,13 +406,20 @@ internal class UiManager : IUiManager {
     /// Handles language system queries for custom text keys.
     /// </summary>
     private bool? OnLanguageHas(string key, string sheet) =>
-        IsMultiplayerButtonKey(key, sheet) ? true : null;
+        IsMultiplayerButtonKey(key, sheet) || IsUpdateButtonKey(key, sheet) ? true : null;
 
     /// <summary>
     /// Provides localized text for custom UI elements.
     /// </summary>
     private string? OnLanguageGet(string key, string sheet) =>
-        IsMultiplayerButtonKey(key, sheet) ? "Start Multiplayer" : null;
+        IsMultiplayerButtonKey(key, sheet) ? "Start Multiplayer" :
+        IsUpdateButtonKey(key, sheet) ? SelfUpdater.ButtonText : null;
+
+    /// <summary>
+    /// Checks if the provided key and sheet match the update button localization.
+    /// </summary>
+    private static bool IsUpdateButtonKey(string key, string sheet) =>
+        key == UpdateButtonKey && sheet == MainMenuSheet;
 
     /// <summary>
     /// Checks if the provided key and sheet match the multiplayer button localization.
@@ -799,6 +824,54 @@ internal class UiManager : IUiManager {
     private void OnMultiplayerMenuRequested() {
         MultiplayerButtonPressed?.Invoke();
         _multiplayerMenuChain.Invoke();
+    }
+
+    #endregion
+
+    #region Update Button
+
+    /// <summary>
+    /// Shows, or refreshes the text of, the SSMP update button of the main menu when the update state changes.
+    /// </summary>
+    private void RefreshUpdateButton() {
+        if (SelfUpdater.StateVersion == _shownUpdateStateVersion || !SelfUpdater.ShowButton) {
+            return;
+        }
+
+        var menu = UM != null ? UM.mainMenuButtons : null;
+        var startGameBtn = menu != null ? menu.startButton : null;
+        if (menu == null || startGameBtn == null) {
+            // Not in the main menu: shown when it is back
+            return;
+        }
+
+        _shownUpdateStateVersion = SelfUpdater.StateVersion;
+
+        var button = menu.gameObject.FindGameObjectInChildren(UpdateButtonName);
+        if (button == null) {
+            button = Object.Instantiate(startGameBtn.gameObject, startGameBtn.transform.parent);
+            button.name = UpdateButtonName;
+            button.transform.SetSiblingIndex(2);
+
+            var eventTrigger = button.GetComponent<EventTrigger>();
+            if (eventTrigger != null) {
+                eventTrigger.triggers.Clear();
+                AddButtonTriggers(eventTrigger, SelfUpdater.StartUpdate);
+            }
+
+            var updateBtn = button.GetComponent<MenuButton>();
+            var multiplayerBtn = menu.gameObject.FindGameObjectInChildren(MultiplayerButtonName)?.GetComponent<MenuButton>();
+            SetNavigation(multiplayerBtn!, selectOnDown: updateBtn);
+            SetNavigation(menu.optionsButton, selectOnUp: updateBtn);
+            SetNavigation(updateBtn, selectOnUp: multiplayerBtn, selectOnDown: menu.optionsButton);
+        }
+
+        var autoLocalize = button.GetComponent<AutoLocalizeTextUI>();
+        if (autoLocalize != null) {
+            autoLocalize.textKey = UpdateButtonKey;
+            autoLocalize.sheetTitle = MainMenuSheet;
+            autoLocalize.RefreshTextFromLocalization();
+        }
     }
 
     #endregion

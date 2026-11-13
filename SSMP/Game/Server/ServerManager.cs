@@ -1643,6 +1643,8 @@ internal abstract class ServerManager : IServerManager {
         } catch (Exception e) {
             Logger.Error($"Exception thrown while invoking PlayerConnect event:\n{e}");
         }
+
+        WarnIfDifferentBuild(clientInfo);
     }
 
     /// <summary>
@@ -2113,6 +2115,26 @@ internal abstract class ServerManager : IServerManager {
         }
 
         SendMessage(player.Id, message);
+    }
+
+    /// <summary>
+    /// Tells every player in the chat when a connecting player has another SSMP build than the server's game, since
+    /// all players need the same build.
+    /// </summary>
+    private void WarnIfDifferentBuild(ClientInfo clientInfo) {
+        var serverCommit = Ui.SelfUpdater.InstalledCommit;
+        if (serverCommit.Length == 0 || clientInfo.Commit == serverCommit) {
+            return;
+        }
+
+        static string Short(string sha) => sha.Length >= 7 ? sha[..7] : sha.Length > 0 ? sha : "inconnue";
+        var message = $"[SSMP] {clientInfo.Username} n'a pas la même version de SSMP " +
+                      $"({Short(clientInfo.Commit)}, l'hôte a {Short(serverCommit)}) : mettez-vous à jour";
+        Logger.Warn(message);
+
+        foreach (var player in _playerData.Values) {
+            NetServer.GetUpdateManagerForClient(player.Id)?.AddChatMessage(message);
+        }
     }
 
     /// <inheritdoc />

@@ -29,6 +29,11 @@ internal class ClientInfo : IPacketData {
     /// </summary>
     public List<AddonData>? AddonData { get; set; }
 
+    /// <summary>
+    /// The SSMP build commit of the client (SSMP-COMMIT.txt), to warn when players have different builds.
+    /// </summary>
+    public string Commit { get; set; } = "";
+
     /// <inheritdoc />
     public void WriteData(IPacket packet) {
         packet.Write(Username);
@@ -44,6 +49,8 @@ internal class ClientInfo : IPacketData {
             packet.Write(AddonData[i].Identifier);
             packet.Write(AddonData[i].Version);
         }
+
+        packet.Write(Commit);
     }
 
     /// <inheritdoc />
@@ -65,6 +72,8 @@ internal class ClientInfo : IPacketData {
 
             AddonData.Add(new AddonData(id, version));
         }
+
+        Commit = packet.ReadString();
     }
 }
 
