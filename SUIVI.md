@@ -201,14 +201,29 @@ Aucun de ces correctifs n'a encore été vérifié en jeu.
   perte retarde aussi les positions) ; le RTT mesuré sur Steam est faux, donc SSMP ne s'adapte pas à une connexion
   moyenne ; les positions n'ont pas de numéro de séquence.
 
-### Partie du 13/11 soir, build `34ea7c8` (logs pas encore récupérés)
+### Partie du 13/11 soir, build `34ea7c8` (logs analysés, à tester)
 
-- 20h01 : un ennemi clignote et n'arrive pas à s'initialiser chez Papaours ; chez Jojo, il est en double.
-- Carte : Papaours voit Jojo sur sa carte, mais Jojo ne voit pas Papaours (il ne voit que lui-même).
-- 20h06 : banc acheté par Jojo, resté fermé chez Papaours, qui a dû l'acheter aussi.
-- 20h08 : ennemi buggé chez Jojo, il ne voit qu'un sprite fixe.
-- 20h11 : arène faite ensemble ; Jojo a eu le ralenti de fin sur le dernier ennemi et ses portes se sont ouvertes,
-  mais Papaours est resté bloqué dans l'arène.
+18. **Ennemi en double et qui clignote (20h01, pèlerin `Pilgrim StaffWielder` de `Bone_12`, Papaours hôte)** : chez
+    Jojo, l'objet hôte de l'ennemi a été détruit ; ensuite chaque mise à jour fiable levait une exception dans
+    `UpdateHostFsmData` (5 500 fois), qui empêchait d'appliquer le reste de la mise à jour, dont la mort envoyée
+    par l'hôte. Correctif : objet hôte détruit ignoré, et une erreur sur les données de FSM n'empêche plus le reste.
+    - Pourquoi l'objet hôte de Jojo était actif et a été tué chez lui : pas élucidé.
+19. **Carte : Jojo ne voyait pas Papaours (les deux avec la boussole)** : l'état « j'ai une icône » n'est envoyé
+    qu'au changement, et le serveur ne le transmet pas aux joueurs qui se connectent après. Correctif : chaque joueur
+    renvoie son icône quand un autre se connecte.
+20. **Banc payé par Jojo resté fermé chez Papaours (20h06, `bell_toll_machine, Dock_01`)** : la valeur arrivait bien,
+    mais l'application immédiate (`SaveChanges.ApplyPersistentValueSaveChange`) était un stub vide. Correctif : une
+    machine à péage (FSM `Unlock Behaviour`) en attente dans la salle joue son ouverture (`Retract Animation`).
+21. **Ennemi figé chez Jojo (20h08, `Bone Hunter Buzzer (1)` de `Bone_East_04`)** : tué par Papaours une seconde
+    avant l'arrivée de Jojo. Le serveur ne garde que les derniers PV, pas la mort, et certaines morts laissent des PV
+    au-dessus de 0. Correctif : l'hôte envoie 0 PV à la mort d'un ennemi.
+22. **Papaours bloqué dans l'arène (20h11, `Ant_05b`, Jojo hôte)** : un `BattleScene` compte les ennemis restants
+    comme les enfants de ses vagues. Chez le client, ce sont les objets hôtes inactifs, alors que la copie qui meurt
+    est à la racine de la scène : le combat ne finissait jamais et les portes restaient fermées. Correctif : à la mort
+    de la copie, l'objet hôte est retiré de sa vague et le combat recompte (log `removing it from the enemies of
+    battle`).
+- Logs : chaque joueur écrit maintenant son inventaire, son équipement et ses capacités (`[Inventory]`) en entrant
+  dans la partie et à chaque banc.
 
 ### Mur de lianes « One Way VineWall » (Tut_02) incassable
 
