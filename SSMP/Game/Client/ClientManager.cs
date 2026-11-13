@@ -791,6 +791,9 @@ internal class ClientManager : IClientManager {
 
         UiManager.InternalChatBox.AddMessage($"Player '{playerConnect.Username}' connected to the server");
 
+        // The server does not tell a new player who already has a map icon, so send ours again
+        _mapManager.ResendMapIcon();
+
         try {
             PlayerConnectEvent?.Invoke(playerData);
         } catch (Exception e) {
@@ -1195,6 +1198,10 @@ internal class ClientManager : IClientManager {
     private void OnSceneChange(Scene oldScene, Scene newScene) {
         Logger.Info($"Scene changed from {oldScene.name} to {newScene.name}");
         Logger.Debug($"  Current scene: {SceneManager.GetActiveScene().name}");
+
+        if (oldScene.name == "Menu_Title") {
+            Save.InventoryLog.Dump($"entered the game in {newScene.name} (connected: {_netClient.IsConnected})");
+        }
 
         // Always recycle existing players, because we changed scenes
         _playerManager.RecycleAllPlayers();

@@ -89,6 +89,15 @@ internal class MapManager : IMapManager {
     }
 
     /// <summary>
+    /// Sends the map icon state and position again on the next update. The icon state is only sent when it changes,
+    /// and the server does not pass it on to players connecting later, who would never see our icon.
+    /// </summary>
+    public void ResendMapIcon() {
+        _lastSentMapIcon = false;
+        _lastPosition = Vector2.zero;
+    }
+
+    /// <summary>
     /// Callback method for the HeroController#Update method.
     /// </summary>
     private void HeroControllerOnUpdate(HeroController heroController) {
