@@ -270,6 +270,20 @@ internal class HealthManagerComponent : EntityComponent {
         _hostCorpse = null;
 
         SendData(data);
+
+        // The server only keeps the last health for players entering the scene later, not the death. Some deaths
+        // leave hp above 0, and the late player would then keep a frozen, living copy of the enemy. Report 0 HP.
+        if (_lastHp > 0) {
+            var hpData = ObjectPool<EntityNetworkData>.Get();
+            hpData.Type = EntityComponentType.Health;
+            hpData.Packet.Write(_lastHp);
+            hpData.Packet.Write(0);
+            hpData.Packet.Write(_currentHealthEpoch);
+            _lastHp = 0;
+
+            SendData(hpData);
+        }
+
         return;
 
         // Utility method to invoke the original method with all the original arguments
@@ -292,6 +306,12 @@ internal class HealthManagerComponent : EntityComponent {
         }
 
         var newHp = observedHealthManager.hp;
+
+        // Dead: keep the 0 HP reported on death instead of sending the leftover hp of the dead enemy
+        if (observedHealthManager.isDead && _lastHp <= 0) {
+            return;
+        }
+
         if (newHp != _lastHp) {
             if (IsControlled && newHp > _lastHp) {
                 if (_hasPendingControlledHealCorrection) {
