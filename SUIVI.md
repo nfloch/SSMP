@@ -23,6 +23,19 @@ DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 PATH=$HOME/.dotnet:$PATH dotnet build SS
   par exemple [world-sync](https://github.com/nfloch/SSMP/releases/download/latest-world-sync/SSMP-world-sync.zip).
   `COMMIT.txt` dans le zip donne le commit compilé.
 
+## Mise à jour depuis le jeu
+
+- Au lancement, SSMP compare son commit (`SSMP-COMMIT.txt`) avec le tag `latest-world-sync`. Si un build plus récent
+  existe, le menu principal affiche un bouton « Mettre à jour SSMP (<commit>) » (`SSMP/Ui/SelfUpdater.cs`).
+- Un clic télécharge le zip et vérifie que c'est le bon build. Ensuite :
+  - soit SSMP renomme les fichiers en cours d'utilisation en `*.old` et pose les nouveaux (log `[Update] renamed in
+    place`) : la nouvelle version s'applique à la relance ;
+  - soit, si le renommage échoue (plan B), SSMP dépose des `*.new` et lance `ssmp-update.ps1`, qui fait l'échange à
+    la fermeture du jeu (log `[Update] deferred until the game closes`, résultat dans `ssmp-update.log`).
+- Seuls `SSMP.dll`, `SSMP.pdb`, `BouncyCastle.Cryptography.dll` et `SSMP-COMMIT.txt` sont remplacés.
+- À la connexion, si un joueur n'a pas le même build que l'hôte, le chat le signale à tout le monde.
+- La première fois, il faut installer ce build avec `installer-ssmp`, qui reste disponible en secours.
+
 ## Dépôt GitHub (nfloch/SSMP)
 
 - Public, seul `nfloch` (admin) peut pousser. Issues, wiki et discussions désactivés.

@@ -30,3 +30,9 @@ bug : c'est regroupé. Pour signaler un autre bug juste après : `/bug nouveau <
 revient : `/bug encore <numéro d'issue>`. Un marqueur `[BUG #n]`
 apparaît dans le chat et un instantané est écrit dans les logs des deux joueurs. Les logs partent tout seuls quand on est
 déconnecté ou qu'on quitte le jeu, si on a joué à plusieurs. `envoyer-logs.cmd` reste disponible en secours.
+
+## Mises à jour
+
+Une fois ce build installé avec `installer-ssmp.cmd`, plus besoin du script : quand une nouvelle version existe, le
+menu principal du jeu affiche **Mettre à jour SSMP**. Un clic, puis relancer le jeu. Si le chat dit qu'un joueur n'a
+pas la même version, il faut mettre à jour.
