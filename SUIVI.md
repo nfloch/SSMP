@@ -45,7 +45,10 @@ DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 PATH=$HOME/.dotnet:$PATH dotnet build SS
 ## Logs
 
 - Papaours : `%APPDATA%\Cogfly\profiles\SSMP\BepInEx\LogOutput.log`.
-- Jojo : il envoie son `LogOutput.log`, que je dépose dans `Téléchargements`.
+- Jojo et Papaours : `envoyer-logs` les envoie sur Gokapi (Claude le lance pour Papaours, jeu fermé) puis supprime
+  le log ; `recuperer-logs.sh` les récupère. Noms : `LogOutput-<utilisateur>-<profil>-<date>-<heure>`.
+- Depuis `4030ab8`, chaque ligne SSMP commence par l'heure locale (`HH:mm:ss.fff`) : chercher directement les heures
+  notées pendant la partie.
 
 ## Sauvegardes
 
@@ -123,6 +126,32 @@ Aucun de ces correctifs n'a encore été vérifié en jeu.
       login` chez le client.
     - Ce que le client gagne pendant la session est perdu à sa prochaine connexion (il reprend la copie de l'hôte).
 
+### Analyse des sessions du 13/11 (à tester en jeu)
+
+13. **Tous les joueurs déconnectés d'un coup (`Ant_04_mid`, Jojo hôte)** : les gros messages Steam fiables (plus de
+    1 200 octets, ~20 ennemis avec données de FSM) étaient lus dans un tampon fixe de 1 200 octets et tronqués. Le
+    paquet incomplet restait dans un tampon de restes **commun à tous les clients**, qui collait ensuite les données
+    des autres (dont le client local de Papaours) : cadrage perdu, `Could not read packet view…`, puis `Client N timed
+    out` pour tout le monde. Correctif : tampon de restes par client (`NetServer`), lecture du message Steam en entier
+    (`SteamEncryptedTransport[Server]`).
+14. **Skarrgard (`Bone Hunter Throw`, salle `Ant_02` et non `Bone_08`) qui reste sous terre** : sa zone `Guard Range`
+    est détachée à la racine de la scène par son FSM et porte son propre FSM ; SSMP la prenait pour son propre
+    propriétaire, ne lui trouvait jamais de cible et répondait toujours « joueur hors de portée ». Le boss s'enterrait
+    et ne remontait jamais, même pour un hôte seul. Correctif : propriétaire retrouvé via `AlertRange.initialParent`.
+15. **Ennemis qui se téléportent, Jojo ultra rapide (15h53)** : l'interpolation supposait 50 ms entre deux positions
+    reçues, alors qu'elles arrivent toutes les ~17 ms (ou en rafales sur une connexion moyenne) : vitesse fausse d'un
+    facteur 3, retard puis recalage brutal. Correctif : délai réel entre paquets (`PredictiveInterpolation`).
+16. **Écran qui tremble et soie gagnée quand l'autre frappe des lianes de soie (16h04, Mosstown_02)** : les lianes,
+    objets cassables et leviers envoient la secousse directement au FSM de la caméra (`SendEventByName`,
+    `cameraShakeFSM.SendEvent`), hors `CameraManagerReference`, et les lianes appellent `HeroController.AddSilk`.
+    Correctif : ignorés pendant le traitement d'une attaque distante. Limite : une secousse jouée après un délai
+    dans le FSM passerait encore.
+17a. **Ennemi invisible qui frappe après un changement d'hôte (18h17, `Ant_04_mid`)** : en devenant hôte, SSMP
+    rejoue l'initialisation des FSM (dont `SetMeshRenderer` off d'un état `Dormant`). Correctif : `Entity.MakeHost`
+    recopie l'état `MeshRenderer`/`SpriteRenderer` de la copie client (log `became host with … restoring on`).
+17. **Flood de mises à jour `FisherWalkerTimer`/`FisherWalkerIdleTimeLeft`** (des milliers par visite de `Bone_07`,
+    sur le canal fiable) : passés en `Sync: false`.
+
 ## Bugs ouverts
 
 ### Boss : chacun sa victoire, mais on peut rejoindre un combat en cours (décision du 13/11)
@@ -151,34 +180,26 @@ Aucun de ces correctifs n'a encore été vérifié en jeu.
 - Cloches qui tombent (`BoneBeast DropBell …`, `BoneBeast AtkBell …`) : objets de décor avec leur propre FSM, que le
   boss déclenche par `SendEventByName`. Chaque jeu les fait tomber à sa façon, d'où des cloches différentes.
 
-### À analyser (partie du 13/11 après-midi)
+### Pistes restantes des sessions du 13/11
 
-- 15h53 : Jojo très rapide sur l'écran de Papaours pendant du plateforming, puis normal.
-- 15h55 et 15h58 : Jojo entré en premier (hôte) ; chez Papaours, un ennemi figé ou qui vise mais est intouchable.
-- 16h00 : Jojo prend des dégâts d'une source invisible.
-- 16h03 : corde coupée par Papaours (bloc qui tombe) non répercutée chez Jojo.
-- 16h04 : écran de Papaours qui tremble quand Jojo frappe de la soie (secousse sans doute envoyée hors du coup,
-  par FSM, non couverte par le correctif 5).
-- 16h14 : baie de mousse lâchée par un ennemi tué par Jojo, restée en l'air chez Papaours.
-### Partie du 13/11 soir (Marrow → Ant_04, logs analysés)
-
-- **Ennemi invisible qui frappe après la mort de l'hôte (18h17, `Ant_04_mid`)** : en devenant hôte, SSMP rejoue
-  les actions d'initialisation des FSM, dont celles d'états de départ comme `Dormant` (`SetMeshRenderer` off), puis
-  reprend l'état du combat : l'ennemi se bat invisible. Correctif : `Entity.MakeHost` recopie l'état
-  `MeshRenderer`/`SpriteRenderer` de la copie client (log `became host with … restoring on`).
-- **« Ennemis figés après la déconnexion de Jojo » : c'est en fait le serveur (jeu de Papaours) qui a tout coupé.**
-  Juste après l'entrée de Papaours dans `Ant_04_mid` (Jojo hôte, ~20 ennemis), son client n'arrive pas à lire des
-  paquets du serveur : `Could not read packet view of length 5125 (readPos: 1246, length: 4326)` dans
-  `ReliableEntityUpdate` → `EntityNetworkData`, puis `Could not read value of type 'float'` dans `EntityUpdate`.
-  Ensuite `Client 0..4 timed out`, y compris Papaours lui-même. Déjà vu à 126236 (longueur annoncée 54532) et une
-  fois l'après-midi. Écriture et lecture sont dans le même build (serveur et client du même jeu) : asymétrie ou
-  corruption à l'assemblage des paquets. Écarté : débordement du nombre de variables de FSM (23 au plus ici).
-  **Bug ouvert, à creuser** (concurrence jeu/envoi réseau, réassemblage des morceaux de 1 024 octets ?).
-- **Mini-boss fourmi rouge qui reste sous terre (18h12)** : c'est le Skarrgard (`Bone Hunter Throw`, `Bone_08`).
-  Cassé aussi pour un hôte seul, donc pas une question de synchro : un patch SSMP doit perturber son FSM. Son FSM
-  n'est ni dans `bone_08.bundle` ni dans les modèles `fsmtemplates_*ant*`/`*bone*` : à chercher plus largement.
-  **Ouvert.**
-- 18h02 (mob buggé chez Papaours) et ennemis qui se téléportent quand Jojo est hôte : pas encore analysés.
+- **Corde coupée à 16h03** : probablement le `Bone Lever` de `Mosstown_01` (`mosstown01_shortcut`, `SyncType:
+  Player`). Seule la valeur sauvegardée voyage, pas l'animation : l'autre ne voit rien bouger. Pas de correctif.
+- **Baie de mousse en l'air (16h14)** : portée par un `Aspid Collector`, libérée à sa mort par FindChild,
+  ActivateGameObject puis SetParent. Cause non trouvée dans les logs.
+- **Cloches de la Bête-Cloche différentes** : les cloches (`BoneBeast DropBell`/`AtkBell`) ne sont pas des entités ;
+  chaque jeu tire sa propre position et son rebond au hasard. Piste : les déclarer comme entités dans
+  `entity-registry.json` (patch proposé, non appliqué : boss déjà battu).
+- **Ennemi figé ou intouchable quand Jojo est hôte (15h55/15h58)** : l'hypothèse « ennemi absent chez l'hôte » est
+  écartée (mêmes entités des deux côtés dans toutes les salles). Plutôt une copie reçue dans un état dormant ou caché
+  (collider coupé). À diagnostiquer avec les heures dans les logs.
+- **Dégâts invisibles (16h00)** : sans doute `Bone_11`, où Jojo est entré le premier. Non prouvé.
+- **Mob buggé (18h02)** : pas d'ennemi précis identifié. Piste : erreur à la création de la copie client de
+  `Bone Goomba Large` et de `Bone Crawler` (`WaitForTk2dAnimatorClipFinish` lors de `ProcessClientFsm`), copie peut-être
+  à moitié initialisée.
+- **`Shakra` jamais créé chez le client** (`EntitySpawner` : `NotImplementedException`).
+- **Réseau, à voir après test** : un paquet contenant une donnée fiable part entier sur le canal Steam fiable (une
+  perte retarde aussi les positions) ; le RTT mesuré sur Steam est faux, donc SSMP ne s'adapte pas à une connexion
+  moyenne ; les positions n'ont pas de numéro de séquence.
 
 ### Mur de lianes « One Way VineWall » (Tut_02) incassable
 
@@ -214,6 +235,8 @@ Aucun de ces correctifs n'a encore été vérifié en jeu.
 - Focus des ennemis sur les joueurs autres que l'hôte : world-sync a du code pour ça (`GamePatcher.EnemyTargeting`,
   `PlayerTargetRegistry`), mais il n'écrit rien dans les logs. À vérifier visuellement.
 - Les correctifs 3 et 4 ci-dessus.
+- Correctifs 12 à 17 : copie de l'inventaire au login, Skarrgard dans `Ant_02`, plus de déconnexion générale avec Jojo
+  hôte d'une salle chargée, ennemis plus fluides, plus de secousse ni de soie avec les lianes.
 
 ## Outils
 
