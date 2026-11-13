@@ -216,7 +216,11 @@ internal class PredictiveInterpolation : MonoBehaviour {
     /// Updates the entity's position using the latest prediction state.
     /// </summary>
     public void SetNewPosition(Vector3 newPos) {
-        SetNewState(newPos);
+        // Position packets are not tied to a fixed server tick (send rate is 17 ms or 50 ms depending on congestion,
+        // and packets can be lost or bunched), so measure the real arrival interval instead of assuming one
+        // 'serverDeltaTime' per packet; otherwise velocity is off by 3x or more and the entity/player over- or
+        // undershoots before the visual offset catches up.
+        SetNewState(newPos, 0);
     }
 
     /// <summary>
