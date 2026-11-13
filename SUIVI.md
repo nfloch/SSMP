@@ -23,6 +23,15 @@ DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 PATH=$HOME/.dotnet:$PATH dotnet build SS
   par exemple [world-sync](https://github.com/nfloch/SSMP/releases/download/latest-world-sync/SSMP-world-sync.zip).
   `COMMIT.txt` dans le zip donne le commit compilé.
 
+## Dépôt GitHub (nfloch/SSMP)
+
+- Public, seul `nfloch` (admin) peut pousser. Issues, wiki et discussions désactivés.
+- Interactions limitées aux collaborateurs (pas de PR, d'issue ni de commentaire du public) : **expire le
+  12/05/2027**, à renouveler (`gh api -X PUT repos/nfloch/SSMP/interaction-limits -f limit=collaborators_only
+  -f expiry=six_months`).
+- Workflows des contributeurs externes : approbation obligatoire pour tous (`all_external_contributors`).
+- `Build DLL` ne se déclenche que sur `push` : ne pas y ajouter `pull_request`, il tourne sur le runner du cluster.
+
 ## Logs
 
 - Papaours : `%APPDATA%\Cogfly\profiles\SSMP\BepInEx\LogOutput.log`.
