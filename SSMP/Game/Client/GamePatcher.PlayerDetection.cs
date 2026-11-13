@@ -160,7 +160,7 @@ internal partial class GamePatcher {
     /// <param name="self">The alert range being queried.</param>
     /// <returns>True when the relevant tracked player is inside this alert range and visible; otherwise false.</returns>
     private static bool OnAlertRangeIsHeroInRange(AlertRange self) {
-        var owner = GetEnemyTargetOwner(self.gameObject);
+        var owner = GetAlertRangeOwner(self);
         if (owner == null) {
             // A detached/stale AlertRange can survive after its enemy hierarchy is rebuilt. Resolve
             // the tracked player's actual overlap directly; the native hero flag may belong to a
@@ -190,6 +190,28 @@ internal partial class GamePatcher {
         }
 
         return approvedTargetIsValid;
+    }
+
+    /// <summary>
+    /// Resolves the enemy that owns an alert range, including ranges that the enemy FSM de-parented to the scene
+    /// root. Skarrgard's "Guard Range" is such a range and carries its own PlayMakerFSM, so the generic owner lookup
+    /// would resolve it to itself. Falls back to the initial parent that <see cref="AlertRange"/> records in Awake.
+    /// </summary>
+    /// <param name="alertRange">The alert range to resolve.</param>
+    /// <returns>The owning enemy object, or <see langword="null"/> if the range belongs to no enemy.</returns>
+    private static GameObject? GetAlertRangeOwner(AlertRange alertRange) {
+        if (alertRange.GetComponentInParent<HealthManager>() != null) {
+            return GetEnemyTargetOwner(alertRange.gameObject);
+        }
+
+        if (AlertRangeInitialParentField?.GetValue(alertRange) is Transform initialParent && initialParent != null) {
+            var healthManager = initialParent.GetComponentInParent<HealthManager>();
+            if (healthManager != null) {
+                return healthManager.gameObject;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -449,7 +471,8 @@ internal partial class GamePatcher {
             return false;
         }
 
-        if (alertRange.GetComponentInParent<HealthManager>() == null) {
+        var owner = GetAlertRangeOwner(alertRange);
+        if (owner == null) {
             return false;
         }
 
@@ -457,11 +480,7 @@ internal partial class GamePatcher {
             return !boxed.Value;
         }
 
-        var owner = GetEnemyTargetOwner(alertRange.gameObject);
-        EntityRegistryEntry? entry = null;
-        if (owner != null) {
-            EntityRegistry.TryGetEntry(owner, out entry);
-        }
+        EntityRegistry.TryGetEntry(owner, out var entry);
 
         var isNonAcquiring = false;
         if (entry is { NonAcquiringRanges: not null }) {
