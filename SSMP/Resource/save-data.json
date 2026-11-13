@@ -1166,14 +1166,14 @@
       "Additive": false
     },
     "FisherWalkerIdleTimeLeft": {
-      "Sync": true,
+      "Sync": false,
       "SyncType": "Player",
       "IgnoreSceneHost": true,
       "VarType": "System.Single",
       "Additive": false
     },
     "FisherWalkerTimer": {
-      "Sync": true,
+      "Sync": false,
       "SyncType": "Player",
       "IgnoreSceneHost": true,
       "VarType": "System.Single",
