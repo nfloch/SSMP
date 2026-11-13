@@ -162,7 +162,8 @@ Aucun de ces correctifs n'a encore été vérifié en jeu.
 - 16h14 : baie de mousse lâchée par un ennemi tué par Jojo, restée en l'air chez Papaours.
 - 18h02 (partie du soir) : un ennemi buggé chez Papaours. En attente des logs et des notes de la partie.
 - 18h12 : Jojo seul dans une salle avec un mini-boss fourmi rouge ; le boss s'enfouit pour une attaque et ne
-  réapparaît jamais.
+  réapparaît jamais. Même chose ensuite pour Papaours, entré seul dans la même salle (donc hôte, sans synchro) :
+  piste d'un patch SSMP qui casse le boss en solo (réorientation de cible pour la sortie de terre ?).
 
 ### Mur de lianes « One Way VineWall » (Tut_02) incassable
 
