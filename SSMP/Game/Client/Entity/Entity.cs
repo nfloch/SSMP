@@ -1207,6 +1207,26 @@ internal class Entity {
         Object.Client.SetActive(false);
         Object.Host.SetActive(clientActive);
 
+        // The initialization actions run above can come from start states that hide the enemy (e.g. a "Dormant"
+        // state with SetMeshRenderer off), while its FSM resumes mid-fight from the snapshot: it would then fight
+        // invisible. The client object reflected the real state given by the previous host, so copy its visibility.
+        CopyRendererEnabled<MeshRenderer>();
+        CopyRendererEnabled<SpriteRenderer>();
+
+        void CopyRendererEnabled<T>() where T : Renderer {
+            var clientRenderer = Object.Client.GetComponent<T>();
+            var hostRenderer = Object.Host.GetComponent<T>();
+            if (clientRenderer == null || hostRenderer == null || hostRenderer.enabled == clientRenderer.enabled) {
+                return;
+            }
+
+            SSMP.Logging.Logger.Info(
+                $"Entity '{Object.Host.name}' became host with {typeof(T).Name} " +
+                $"{(hostRenderer.enabled ? "on" : "off")}, restoring {(clientRenderer.enabled ? "on" : "off")}"
+            );
+            hostRenderer.enabled = clientRenderer.enabled;
+        }
+
         // shortcut: FSMs still inactive here keep RestartOnEnable off, so a later re-enable by the game won't reset
         // them; restore it on their enable if an enemy ever relies on that reset
         for (var fsmIndex = 0; fsmIndex < _fsms.Host.Count; fsmIndex++) {

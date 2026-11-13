@@ -160,17 +160,25 @@ Aucun de ces correctifs n'a encore été vérifié en jeu.
 - 16h04 : écran de Papaours qui tremble quand Jojo frappe de la soie (secousse sans doute envoyée hors du coup,
   par FSM, non couverte par le correctif 5).
 - 16h14 : baie de mousse lâchée par un ennemi tué par Jojo, restée en l'air chez Papaours.
-- 18h02 (partie du soir) : un ennemi buggé chez Papaours. En attente des logs et des notes de la partie.
-- 18h12 : Jojo seul dans une salle avec un mini-boss fourmi rouge ; le boss s'enfouit pour une attaque et ne
-  réapparaît jamais. Même chose ensuite pour Papaours, entré seul dans la même salle (donc hôte, sans synchro) :
-  piste d'un patch SSMP qui casse le boss en solo (réorientation de cible pour la sortie de terre ?).
-- 18h17 : arène lancée par Jojo (hôte), rejointe en cours par Papaours. Ennemis qui se téléportent un peu chez
-  Papaours (connexion de Jojo moyenne ?). Jojo meurt avant la fin : le dernier ennemi devient invisible chez
-  Papaours mais continue de le frapper. Piste : bascule d'hôte vers Papaours à la sortie de Jojo, l'objet hôte de
-  l'ennemi n'a pas repris l'apparence de la copie (rendu, sprite, couche).
-- Ensuite : Jojo retourne seul dans l'arène, tout va bien. Papaours le rejoint, et Jojo (hôte) est déconnecté à ce
-  moment-là : les ennemis ne bougent plus chez Papaours. Piste : déconnexion brutale (expiration), transfert d'hôte
-  absent ou tardif, alors qu'il marche pour une déconnexion normale.
+### Partie du 13/11 soir (Marrow → Ant_04, logs analysés)
+
+- **Ennemi invisible qui frappe après la mort de l'hôte (18h17, `Ant_04_mid`)** : en devenant hôte, SSMP rejoue
+  les actions d'initialisation des FSM, dont celles d'états de départ comme `Dormant` (`SetMeshRenderer` off), puis
+  reprend l'état du combat : l'ennemi se bat invisible. Correctif : `Entity.MakeHost` recopie l'état
+  `MeshRenderer`/`SpriteRenderer` de la copie client (log `became host with … restoring on`).
+- **« Ennemis figés après la déconnexion de Jojo » : c'est en fait le serveur (jeu de Papaours) qui a tout coupé.**
+  Juste après l'entrée de Papaours dans `Ant_04_mid` (Jojo hôte, ~20 ennemis), son client n'arrive pas à lire des
+  paquets du serveur : `Could not read packet view of length 5125 (readPos: 1246, length: 4326)` dans
+  `ReliableEntityUpdate` → `EntityNetworkData`, puis `Could not read value of type 'float'` dans `EntityUpdate`.
+  Ensuite `Client 0..4 timed out`, y compris Papaours lui-même. Déjà vu à 126236 (longueur annoncée 54532) et une
+  fois l'après-midi. Écriture et lecture sont dans le même build (serveur et client du même jeu) : asymétrie ou
+  corruption à l'assemblage des paquets. Écarté : débordement du nombre de variables de FSM (23 au plus ici).
+  **Bug ouvert, à creuser** (concurrence jeu/envoi réseau, réassemblage des morceaux de 1 024 octets ?).
+- **Mini-boss fourmi rouge qui reste sous terre (18h12)** : c'est le Skarrgard (`Bone Hunter Throw`, `Bone_08`).
+  Cassé aussi pour un hôte seul, donc pas une question de synchro : un patch SSMP doit perturber son FSM. Son FSM
+  n'est ni dans `bone_08.bundle` ni dans les modèles `fsmtemplates_*ant*`/`*bone*` : à chercher plus largement.
+  **Ouvert.**
+- 18h02 (mob buggé chez Papaours) et ennemis qui se téléportent quand Jojo est hôte : pas encore analysés.
 
 ### Mur de lianes « One Way VineWall » (Tut_02) incassable
 
