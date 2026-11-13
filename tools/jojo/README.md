@@ -1,0 +1,23 @@
+# Scripts Windows pour le deuxième joueur
+
+Deux scripts à double-cliquer, pour Windows (PowerShell 5.1, installé par défaut) :
+
+- **`installer-ssmp.cmd`** : télécharge le dernier build SSMP de la branche `world-sync` (pré-release
+  `latest-world-sync`) et l'installe dans le profil Cogfly qui contient SSMP. Le jeu doit être fermé. L'ancienne
+  version est gardée en `SSMP.dll.bak`, et le commit installé est écrit dans `SSMP-COMMIT.txt`.
+- **`envoyer-logs.cmd`** : compresse `BepInEx\LogOutput.log` et l'envoie sur le Gokapi de Papaours, via la demande
+  d'upload dont le lien est dans `ssmp-jojo.config`.
+
+S'il y a plusieurs profils Cogfly avec SSMP, les scripts demandent lequel utiliser. On peut aussi le donner :
+`installer-ssmp.cmd -Profil Alliance`.
+
+## Préparer l'envoi (Papaours)
+
+Le lien d'upload permet à n'importe qui d'envoyer des fichiers : il n'est pas dans le dépôt.
+
+```bash
+cp tools/jojo/ssmp-jojo.config.example tools/jojo/ssmp-jojo.config   # puis y coller le lien
+tools/jojo/make-bundle.sh                                            # crée tools/jojo/dist/ssmp-jojo.zip
+```
+
+Envoyer `dist/ssmp-jojo.zip` en privé. Pour récupérer les logs reçus : `tools/gokapi/recuperer-logs.sh`.

@@ -1,0 +1,3 @@
+# Copier en ssmp-jojo.config et coller le lien de la demande d'upload Gokapi.
+# Ne pas commiter ssmp-jojo.config : le lien permet à n'importe qui d'envoyer des fichiers.
+UploadUrl=https://files.example.org/publicUpload?id=<id>&key=<clé>

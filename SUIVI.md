@@ -32,6 +32,15 @@ DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 PATH=$HOME/.dotnet:$PATH dotnet build SS
 - Workflows des contributeurs externes : approbation obligatoire pour tous (`all_external_contributors`).
 - `Build DLL` ne se déclenche que sur `push` : ne pas y ajouter `pull_request`, il tourne sur le runner du cluster.
 
+## Scripts pour Jojo et récupération des logs
+
+- [`tools/jojo/`](tools/jojo/README.md) : `installer-ssmp.cmd` (installe le dernier build dans son profil Cogfly) et
+  `envoyer-logs.cmd` (envoie son `LogOutput.log` compressé sur le Gokapi). Le lien d'upload est dans
+  `tools/jojo/ssmp-jojo.config`, hors dépôt ; `tools/jojo/make-bundle.sh` prépare le zip à lui envoyer.
+- `tools/gokapi/recuperer-logs.sh [-n <nombre>|all]` : télécharge et décompresse les logs reçus dans les
+  Téléchargements Windows. Config dans `~/.config/ssmp/gokapi.env` (adresse, id de la demande, clé API
+  d'administration avec les droits « view » et « download »).
+
 ## Logs
 
 - Papaours : `%APPDATA%\Cogfly\profiles\SSMP\BepInEx\LogOutput.log`.

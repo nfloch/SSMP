@@ -1,0 +1,4 @@
+# Contains the Gokapi upload link (secret)
+ssmp-jojo.config
+# Ready-to-send bundle for Jojo, built with make-bundle.sh
+dist/
