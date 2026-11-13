@@ -7,6 +7,15 @@ description: Run a co-op SSMP debug session end to end. Wait for the end of the 
 
 Players press **F8** (or type `/bug <text>`) in game. The server announces `[BUG #n] by <player> (id) in <scene>[: text]`,
 and every game logs a `[BUG]` snapshot. `/bug encore <issue>` means that the bug of issue `<issue>` came back.
+
+The server already merges some duplicates (`SSMP/Game/Command/Server/BugCommand.cs`):
+- a second F8 from the same player within 5 s is ignored;
+- `/bug <text>` within 60 s of the same player's marker becomes its description (`[BUG #n] description from …`);
+- a marker in the same scene within 20 s of the previous one joins it (`[BUG #n] also reported by …`, with a new
+  snapshot);
+- `/bug nouveau [text]` always starts a new bug.
+
+The splitter groups everything with the same number in one folder: all snapshots, `reports`, and `description`.
 SSMP log lines carry the local time, and `[Inventory]` lines record each player's inventory at game entry and at benches.
 
 Paths (run from the SSMP repo root, `world-sync` branch):
@@ -70,14 +79,24 @@ If `new_bugs` is empty and there's no serious anomaly, say so and go back to ste
    `origin main`. Issues link to these files.
 2. Create the milestone `Session <dd/mm hh:mm>` if it doesn't exist:
    `gh api repos/nfloch/ssmp-bugs/milestones -f title=...`.
-3. Handle each new marker:
-   - **`/bug encore <issue>`**: reopen that issue, add the label `rouvert`, and comment with the new folder.
+3. **Merge the remaining duplicates before opening anything.** Compare the new bugs with each other and with the
+   tracker's open issues (`gh issue list -R nfloch/ssmp-bugs --state open`). Treat two bugs as one when they have
+   the same scene and the same entity or object in the snapshots, and the same errors or symptoms around them.
+   Typical case: the same bug reported again a minute later, past the server's 20 s window.
+   - Open a single issue that links every folder.
+   - If an issue already exists, comment on it with the new folder instead.
+   - If in doubt, keep them separate and cross-link them ("peut-être lié à #…").
+4. Handle each remaining bug:
+   - **Description `encore <issue>`** (a regression): reopen that issue, add the label `rouvert`, and comment with
+     the new folder.
    - **Any other marker**: create an issue in the private tracker.
      - Title: `[BUG #n] <short summary> (<scene>)`.
      - Labels: `nouveau`, plus one theme (`ennemis`, `boss-arene`, `objets-sauvegarde`, `reseau`, `joueur`).
      - Milestone: the session's.
      - Body: who reported it, when and where, the description, the build commit, a 2–4 line summary of both snapshots,
        and a link to `sessions/<session>/bug-<n>/`.
+
+Only one agent per issue: merged duplicates are never analysed twice.
 
 ## 5. One agent per bug
 

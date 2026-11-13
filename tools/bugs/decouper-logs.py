@@ -24,7 +24,10 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 LINE_TIME = re.compile(r"^\[[^\]]*\] (\d{2}:\d{2}:\d{2}\.\d{3}) ")
-MARKER = re.compile(r"\[BUG #(?P<n>[^\]]+)\] by (?P<by>.*?)(?:: (?P<desc>.*?))? ===== snapshot of this game")
+MARKER = re.compile(
+    r"\[BUG #(?P<n>[^\]]+)\] (?P<also>also reported )?by (?P<by>.*?)(?:: (?P<desc>.*?))? ===== snapshot of this game"
+)
+DESCRIPTION = re.compile(r"\[BUG #(?P<n>[^\]]+)\] description from (?P<by>.*?): (?P<desc>.*)$")
 REPORTER = re.compile(r"^(?P<name>.*?) \(id (?P<id>\d+)\) in (?P<scene>\S*)$")
 SNAPSHOT_END = "===== end of snapshot"
 
@@ -77,10 +80,22 @@ def find_markers(lines):
         while end < len(lines) and SNAPSHOT_END not in lines[end][1]:
             end += 1
         markers.append({
-            "n": m.group("n"), "by": m.group("by"), "desc": m.group("desc") or "",
+            "n": m.group("n"), "by": m.group("by"), "desc": m.group("desc") or "", "also": bool(m.group("also")),
             "time": time, "index": i, "snapshot": [l for _, l in lines[i:end + 1]],
         })
     return markers
+
+
+def find_descriptions(lines):
+    """Descriptions added with "/bug <text>" just after a marker: number -> [(reporter, text)]."""
+    found = {}
+    for _, line in lines:
+        m = DESCRIPTION.search(line)
+        if m:
+            found.setdefault(m.group("n"), [])
+            if (m.group("by"), m.group("desc")) not in found[m.group("n")]:
+                found[m.group("n")].append((m.group("by"), m.group("desc")))
+    return found
 
 
 def strip_prefix(line):
@@ -94,9 +109,10 @@ def message_key(line):
     return re.sub(r"\d+", "N", re.sub(r"^\[[^\]]*\] (?:[\d:.]+ )?", "", line))[:200]
 
 
-def window(lines, center, before, after):
-    """Lines around the marker time, without noise; each message is kept at most MAX_REPEATS times."""
-    start, end = center - timedelta(seconds=before), center + timedelta(seconds=after)
+def window(lines, first, last, before, after):
+    """Lines from before the first snapshot to after the last one, without noise; each message is kept at most
+    MAX_REPEATS times."""
+    start, end = first - timedelta(seconds=before), last + timedelta(seconds=after)
     out, counts = [], Counter()
     for time, line in lines:
         if time is None or time < start or time > end:
@@ -150,41 +166,58 @@ def main():
     state = set(json.loads(args.state.read_text())) if args.state.exists() else set()
     args.out.mkdir(parents=True, exist_ok=True)
 
-    # Group the snapshots of the same marker across logs by number and reporter
+    # Group by bug number: the first report, "also reported by" ones and descriptions all belong to the same bug
     bugs = OrderedDict()
+    descriptions = {}
     for name, lines in logs.items():
         for marker in find_markers(lines):
-            key = f"{marker['n']}|{marker['by']}"
-            bugs.setdefault(key, {})[name] = marker
+            bugs.setdefault(marker["n"], OrderedDict()).setdefault(name, []).append(marker)
+        for n, items in find_descriptions(lines).items():
+            for item in items:
+                if item not in descriptions.setdefault(n, []):
+                    descriptions[n].append(item)
 
     new = []
-    for key, per_log in bugs.items():
-        first = next(iter(per_log.values()))
-        session_key = f"{args.out.name}|{key}"
+    for n, per_log in bugs.items():
+        session_key = f"{args.out.name}|{n}"
         if session_key in state:
             continue
 
+        all_markers = sorted((m for ms in per_log.values() for m in ms), key=lambda m: m["time"])
+        first = next((m for m in all_markers if not m["also"]), all_markers[0])
+        reports = []
+        for m in all_markers:
+            report = {"by": m["by"], "also": m["also"], "desc": m["desc"]}
+            if report not in reports:
+                reports.append(report)
+        texts = [r["desc"] for r in reports if r["desc"]] + [d for _, d in descriptions.get(n, [])]
+
         reporter = REPORTER.match(first["by"])
-        folder = args.out / f"bug-{first['n'].replace(' ', '-')}"
+        folder = args.out / f"bug-{n.replace(' ', '-')}"
         folder.mkdir(exist_ok=True)
 
         for name, lines in logs.items():
-            marker = per_log.get(name)
+            markers = per_log.get(name)
             with open(folder / f"{name}.txt", "w", encoding="utf-8") as f:
-                if marker is None:
-                    f.write(f"No snapshot of this marker in {name}'s log (not connected, or log sent before it).\n")
+                if not markers:
+                    f.write(f"No snapshot of this bug in {name}'s log (not connected, or log sent before it).\n")
                     continue
-                f.write(f"# {name}: marker at {marker['time']:%H:%M:%S.%f}\n\n## Snapshot\n")
-                f.write("\n".join(strip_prefix(l) for l in marker["snapshot"]) + "\n\n")
-                f.write(f"## Log from {args.before}s before to {args.after}s after (noise removed)\n")
-                f.write("\n".join(window(lines, marker["time"], args.before, args.after)) + "\n")
+                f.write(f"# {name}: {len(markers)} snapshot(s) of bug #{n}\n")
+                for marker in markers:
+                    f.write(f"\n## Snapshot at {marker['time']:%H:%M:%S.%f}\n")
+                    f.write("\n".join(strip_prefix(l) for l in marker["snapshot"]) + "\n")
+                f.write(f"\n## Log from {args.before}s before the first snapshot to {args.after}s after the last "
+                        f"(noise removed)\n")
+                f.write("\n".join(window(lines, markers[0]["time"], markers[-1]["time"], args.before, args.after)))
+                f.write("\n")
 
         meta = {
-            "n": first["n"], "reported_by": first["by"],
+            "n": n, "reported_by": first["by"],
             "reporter": reporter.group("name") if reporter else first["by"],
             "scene": reporter.group("scene") if reporter else "",
-            "description": first["desc"],
-            "times": {name: f"{m['time']:%H:%M:%S}" for name, m in per_log.items()},
+            "reports": [("also reported by " if r["also"] else "by ") + r["by"] for r in reports],
+            "description": " / ".join(texts),
+            "times": {name: [f"{m['time']:%H:%M:%S}" for m in ms] for name, ms in per_log.items()},
             "folder": str(folder),
         }
         (folder / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")

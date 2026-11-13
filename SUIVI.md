@@ -49,6 +49,14 @@ DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 PATH=$HOME/.dotnet:$PATH dotnet build SS
   écrit alors dans son log un instantané de son propre état : salle, hôte de la salle, joueur local, et pour chaque
   entité ses objets hôte et client (actif, visible, collider, PV, états de FSM, position).
 - Bug revenu après un correctif : `/bug encore <numéro d'issue>`.
+- Doublons gérés par le serveur :
+  - un deuxième F8 du même joueur dans les 5 s est ignoré ;
+  - un `/bug <texte>` dans les 60 s qui suivent son F8 devient la description du bug ;
+  - un signalement dans la même salle moins de 20 s après le précédent est rattaché au même numéro
+    (« also reported by »), avec un nouvel instantané ;
+  - `/bug nouveau [texte]` force un nouveau bug.
+
+  Claude fusionne ensuite les doublons restants avant de lancer les agents.
 - Envoi des logs : automatique. À la déconnexion ou en quittant le jeu, SSMP envoie le log sur Gokapi
   (`LogUploader`), mais seulement si un autre joueur a été connecté pendant la session. Le lien est dans
   `ssmp-upload.cfg`, à côté de `SSMP.dll`, et l'installateur le copie depuis `ssmp-jojo.config`. Un envoi qui
