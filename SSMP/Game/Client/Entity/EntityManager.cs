@@ -257,8 +257,14 @@ internal class EntityManager {
             if (update.UpdateTypes.Contains(EntityUpdateType.Active))
                 entity.UpdateIsActive(update.IsActive);
 
-            if (update.UpdateTypes.Contains(EntityUpdateType.HostFsm))
-                entity.UpdateHostFsmData(update.HostFsmData);
+            if (update.UpdateTypes.Contains(EntityUpdateType.HostFsm)) {
+                // Never let a failure here drop the data below (health, death...) of the same update
+                try {
+                    entity.UpdateHostFsmData(update.HostFsmData);
+                } catch (Exception e) {
+                    Logger.Warn($"Could not update host FSM data of entity {update.Id}: {e.Message}");
+                }
+            }
         }
 
         if (update.UpdateTypes.Contains(EntityUpdateType.Data))

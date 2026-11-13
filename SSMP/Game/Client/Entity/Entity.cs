@@ -1507,6 +1507,12 @@ internal class Entity {
             var hostFsm = _fsms.Host[fsmIndex];
             var snapshot = _fsmSnapshots[fsmIndex];
 
+            // The host object can be destroyed on this client (e.g. it died here before the scene host's death
+            // arrived); skip it instead of throwing, which would drop the rest of the reliable update (its death)
+            if (hostFsm == null || hostFsm.Fsm == null || snapshot == null) {
+                continue;
+            }
+
             if (data.Types.Contains(EntityHostFsmData.Type.State)) {
                 var states = hostFsm.FsmStates;
                 if (states.Length <= data.CurrentState) {
