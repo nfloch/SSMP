@@ -247,6 +247,10 @@ internal class SaveManager {
 
             field.SetValue(_lastPlayerData, currentValue);
 
+            if (field.Name == "atBench" && currentValue is true) {
+                InventoryLog.Dump("bench rest");
+            }
+
             if (field.FieldType == typeof(int)) {
                 CheckSendSaveUpdate(
                     field.Name,
