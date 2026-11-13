@@ -37,7 +37,8 @@ DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 PATH=$HOME/.dotnet:$PATH dotnet build SS
 - [`tools/jojo/`](tools/jojo/README.md) : `installer-ssmp.cmd` (installe le dernier build dans son profil Cogfly) et
   `envoyer-logs.cmd` (envoie son `LogOutput.log` compressé sur le Gokapi). Le lien d'upload est dans
   `tools/jojo/ssmp-jojo.config`, hors dépôt ; `tools/jojo/make-bundle.sh` prépare le zip à lui envoyer.
-- `tools/gokapi/recuperer-logs.sh [-n <nombre>|all]` : télécharge et décompresse les logs reçus dans les
+- `tools/gokapi/recuperer-logs.sh [-l] [-n <nombre>|all]` : télécharge (ou liste avec `-l`) les derniers logs reçus,
+  rangés dans `ssmp-logs` des
   Téléchargements Windows. Config dans `~/.config/ssmp/gokapi.env` (adresse, id de la demande, clé API
   d'administration avec les droits « view » et « download »).
 
