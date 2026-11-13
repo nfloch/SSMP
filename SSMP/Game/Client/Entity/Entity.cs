@@ -1030,6 +1030,40 @@ internal class Entity {
     }
 
     /// <summary>
+    /// Describes the entity's current state on this game for a bug report: who controls it and, for both its host
+    /// and client objects, whether they are active and visible, their position, health and FSM states.
+    /// </summary>
+    public string DescribeForBugReport() {
+        return $"({Id}, {Type}) controlled={_isControlled} | host: {DescribeObject(Object.Host, _fsms.Host)} | " +
+               $"client: {DescribeObject(Object.Client, _fsms.Client)}";
+
+        static string DescribeObject(GameObject? obj, List<PlayMakerFSM>? fsms) {
+            if (obj == null) {
+                return "none";
+            }
+
+            var pos = obj.transform.position;
+            var desc = $"'{obj.name}' active={obj.activeSelf}/{obj.activeInHierarchy} pos=({pos.x:F1}, {pos.y:F1})";
+
+            var meshRenderer = obj.GetComponent<MeshRenderer>();
+            if (meshRenderer != null) desc += $" mesh={meshRenderer.enabled}";
+            var spriteRenderer = obj.GetComponent<SpriteRenderer>();
+            if (spriteRenderer != null) desc += $" sprite={spriteRenderer.enabled}";
+            var collider = obj.GetComponent<Collider2D>();
+            if (collider != null) desc += $" collider={collider.enabled}";
+            var healthManager = obj.GetComponent<HealthManager>();
+            if (healthManager != null) desc += $" hp={healthManager.hp} dead={healthManager.isDead}";
+
+            if (fsms != null) {
+                var states = fsms.Where(f => f != null).Select(f => $"{f.FsmName}:{f.ActiveStateName}");
+                desc += $" fsm=[{string.Join(", ", states)}]";
+            }
+
+            return desc;
+        }
+    }
+
+    /// <summary>
     /// Makes the entity a host entity if the client user became the scene host.
     /// </summary>
     public void MakeHost(uint sceneHostEpoch) {

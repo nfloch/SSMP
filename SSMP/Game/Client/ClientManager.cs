@@ -87,6 +87,11 @@ internal class ClientManager : IClientManager {
     private readonly EntityManager _entityManager;
 
     /// <summary>
+    /// Bug markers (F8 / "/bug") with a snapshot of this game in the log.
+    /// </summary>
+    private readonly BugReport _bugReport;
+
+    /// <summary>
     /// The save manager instance.
     /// </summary>
     private readonly SaveManager _saveManager;
@@ -235,6 +240,7 @@ internal class ClientManager : IClientManager {
         _mapManager = new MapManager(netClient, serverSettings);
 
         _entityManager = new EntityManager(netClient);
+        _bugReport = new BugReport(netClient, _entityManager);
 
         _saveManager = new SaveManager(netClient, _entityManager);
 
@@ -261,6 +267,7 @@ internal class ClientManager : IClientManager {
         _playerManager.Initialize();
         _animationManager.Initialize(_serverSettings);
         _mapManager.Initialize();
+        _bugReport.Initialize();
 
         _entityManager.Initialize();
         _saveManager.Initialize();
@@ -1320,6 +1327,8 @@ internal class ClientManager : IClientManager {
     private void OnChatMessage(ChatMessage chatMessage) {
         // Convert &-codes to Unity Rich Text so the client renders colors/bold/italic.
         UiManager.InternalChatBox.AddMessage(ColorCodeParser.ParseToUnityRichText(chatMessage.Message));
+
+        _bugReport.OnChatMessage(chatMessage.Message);
     }
 
     /// <summary>

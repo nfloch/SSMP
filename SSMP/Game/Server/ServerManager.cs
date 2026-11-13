@@ -148,6 +148,11 @@ internal abstract class ServerManager : IServerManager {
     private readonly IServerCommand _announceCommand;
 
     /// <summary>
+    /// The bug marker command.
+    /// </summary>
+    private readonly IServerCommand _bugCommand;
+
+    /// <summary>
     /// The ban command.
     /// </summary>
     private readonly IServerCommand _banCommand;
@@ -240,6 +245,7 @@ internal abstract class ServerManager : IServerManager {
         _whiteListCommand = new WhiteListCommand(_whiteList, this);
         _authorizeCommand = new AuthorizeCommand(_authorizedList, this);
         _announceCommand = new AnnounceCommand(_playerData, NetServer);
+        _bugCommand = new BugCommand(_playerData, NetServer);
         _banCommand = new BanCommand(_banList, this);
         _kickCommand = new KickCommand(this);
         _teamCommand = new TeamCommand(this);
@@ -289,6 +295,7 @@ internal abstract class ServerManager : IServerManager {
         CommandManager.RegisterCommand(_whiteListCommand);
         CommandManager.RegisterCommand(_authorizeCommand);
         CommandManager.RegisterCommand(_announceCommand);
+        CommandManager.RegisterCommand(_bugCommand);
         CommandManager.RegisterCommand(_banCommand);
         CommandManager.RegisterCommand(_kickCommand);
         CommandManager.RegisterCommand(_teamCommand);
@@ -308,6 +315,7 @@ internal abstract class ServerManager : IServerManager {
         CommandManager.DeregisterCommand(_whiteListCommand);
         CommandManager.DeregisterCommand(_authorizeCommand);
         CommandManager.DeregisterCommand(_announceCommand);
+        CommandManager.DeregisterCommand(_bugCommand);
         CommandManager.DeregisterCommand(_banCommand);
         CommandManager.DeregisterCommand(_kickCommand);
         CommandManager.DeregisterCommand(_teamCommand);
