@@ -3,6 +3,7 @@ using SSMP.Util;
 using HutongGames.PlayMaker.Actions;
 using UnityEngine;
 using Logger = SSMP.Logging.Logger;
+using Object = UnityEngine.Object;
 
 namespace SSMP.Game.Client.Save;
 
@@ -33,6 +34,37 @@ internal class SaveChanges {
         Logger.Debug($"ApplyPersistent for item data: {itemKey}");
 
         var currentScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+        if (itemKey.SceneName != currentScene) {
+            return;
+        }
+
+        UnlockTollMachine(itemKey);
+    }
+
+    /// <summary>
+    /// Opens a toll machine (bell bench toll, etc.) that another player paid in the scene the local player is in.
+    /// Its 'Unlock Behaviour' FSM only checks the persistent bool when entering the scene, so without this the
+    /// machine stays closed until the scene is reloaded. Plays the same retract animation as paying it, which also
+    /// sets the player data that unlocks what the machine guards.
+    /// </summary>
+    /// <param name="itemKey">The persistent item key of the changed object.</param>
+    private static void UnlockTollMachine(PersistentItemKey itemKey) {
+        foreach (var fsm in Object.FindObjectsByType<PlayMakerFSM>(FindObjectsSortMode.None)) {
+            if (fsm.FsmName != "Unlock Behaviour" || fsm.gameObject.name != itemKey.Id ||
+                fsm.gameObject.scene.name != itemKey.SceneName) {
+                continue;
+            }
+
+            // Only from the idle state: in any other state it is already open, or the local player is paying it
+            if (fsm.ActiveStateName != "Inert") {
+                Logger.Info($"Toll machine '{itemKey.Id}' paid by another player, but in state '{fsm.ActiveStateName}'");
+                return;
+            }
+
+            Logger.Info($"Toll machine '{itemKey.Id}' paid by another player, opening it");
+            fsm.SetState("Retract Animation");
+            return;
+        }
     }
 
     /// <summary>
