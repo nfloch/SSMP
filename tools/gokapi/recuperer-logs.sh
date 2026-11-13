@@ -1,27 +1,30 @@
 #!/usr/bin/env bash
 # Downloads the logs uploaded through the Gokapi file request (tools/jojo/envoyer-logs.ps1) and extracts them.
 #
-# usage: tools/gokapi/recuperer-logs.sh [-l] [-n <count>] [-o <dir>]
+# usage: tools/gokapi/recuperer-logs.sh [-l] [-k] [-n <count>] [-o <dir>]
 #   -l  only list the uploads (most recent first), without downloading
 #   -n  number of most recent uploads to fetch (default 1; "all" for every upload)
 #   -o  output directory (default: ssmp-logs in the Windows Downloads under WSL, else ~/Downloads/ssmp-logs)
+#   -k  keep the uploads on Gokapi (by default, each upload is deleted once its local copy is in place)
 #
 # Configuration, outside the repo, in ~/.config/ssmp/gokapi.env:
 #   GOKAPI_URL=https://files.example.org
 #   GOKAPI_REQUEST_ID=<file request id, the "id" of the publicUpload link>
-#   GOKAPI_API_KEY=<admin API key with the "view" and "download" permissions>
-# Already downloaded uploads are skipped.
+#   GOKAPI_API_KEY=<admin API key with the "view", "download" and "delete" permissions>
+# Already downloaded uploads are not downloaded again (but still deleted from Gokapi, unless -k).
 set -euo pipefail
 
 count=1
 out=""
 list_only=false
-while getopts "ln:o:h" opt; do
+keep=false
+while getopts "kln:o:h" opt; do
     case "$opt" in
+        k) keep=true ;;
         l) list_only=true ;;
         n) count="$OPTARG" ;;
         o) out="$OPTARG" ;;
-        *) sed -n '2,14p' "$0"; exit 1 ;;
+        *) sed -n '2,16p' "$0"; exit 1 ;;
     esac
 done
 
@@ -74,6 +77,19 @@ if $list_only; then
     exit 0
 fi
 
+# Deletes an upload from Gokapi, once its local copy is in place
+remove_upload() {
+    local id="$1" code
+    $keep && return 0
+    code="$(curl -sS -o /dev/null -w '%{http_code}' -X DELETE \
+        -H "apikey: $GOKAPI_API_KEY" -H "id: $id" "$api/files/delete")" || code="error"
+    if [[ "$code" == 200 ]]; then
+        echo "  deleted from Gokapi"
+    else
+        echo "  NOT deleted from Gokapi (HTTP $code; the API key needs the Delete permission)" >&2
+    fi
+}
+
 for line in "${uploads[@]}"; do
     IFS=$'\t' read -r id name _ _ <<< "$line"
     # Prefixed with the Gokapi id: uploads often share a name (LogOutput.log)
@@ -81,6 +97,7 @@ for line in "${uploads[@]}"; do
     zip="$out/$name"
     if [[ -f "$zip" ]]; then
         echo "Already downloaded: $zip"
+        remove_upload "$id"
         continue
     fi
 
@@ -89,7 +106,8 @@ for line in "${uploads[@]}"; do
     if [[ "$name" == *.zip ]]; then
         log="$out/${name%.zip}.log"
         # Exit code 2: the zip holds no .log file (another upload), it is kept as is
-        if python3 -I -c '
+        rc=0
+        python3 -I -c '
 import sys, zipfile
 with zipfile.ZipFile(sys.argv[1]) as z:
     member = next((n for n in z.namelist() if n.lower().endswith(".log")), None)
@@ -97,12 +115,14 @@ with zipfile.ZipFile(sys.argv[1]) as z:
         sys.exit(2)
     with z.open(member) as src, open(sys.argv[2], "wb") as dst:
         dst.write(src.read())
-' "$zip" "$log"; then
-            echo "$log ($(wc -l < "$log") lines)"
-        else
-            echo "$zip (no log inside)"
-        fi
+' "$zip" "$log" || rc=$?
+        case "$rc" in
+            0) echo "$log ($(wc -l < "$log") lines)" ;;
+            2) echo "$zip (no log inside)" ;;
+            *) echo "$zip: could not extract it, kept on Gokapi" >&2; continue ;;
+        esac
     else
         echo "$zip"
     fi
+    remove_upload "$id"
 done
