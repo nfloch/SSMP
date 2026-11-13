@@ -106,8 +106,8 @@ internal partial class GamePatcher {
     private readonly List<Hook> _hooks = [];
 
     /// <summary>
-    /// Whether knockback of the local player is currently suppressed because a remote player's attack is being
-    /// processed. See <see cref="DamageEnemiesOnLateFixedUpdate"/>.
+    /// Whether knockback of the local player, and camera shakes, are currently suppressed because a remote player's
+    /// attack is being processed. See <see cref="DamageEnemiesOnLateFixedUpdate"/>.
     /// </summary>
     private bool _suppressHeroKnockback;
 
@@ -199,6 +199,12 @@ internal partial class GamePatcher {
         AddHook(typeof(BouncePod), nameof(BouncePod.Hit), IgnoreRemoteHit<BouncePod>);
         AddHook(typeof(BounceBalloon), nameof(BounceBalloon.Hit), IgnoreRemoteHit<BounceBalloon>);
         AddHook(typeof(Breakable), nameof(Breakable.Hit), BreakableOnHitDiagnostic);
+        AddHook(typeof(CameraManagerReference), nameof(CameraManagerReference.DoShake), CameraManagerReferenceOnDoShake);
+        AddHook(
+            typeof(CameraManagerReference),
+            nameof(CameraManagerReference.DoShakeInRange),
+            CameraManagerReferenceOnDoShakeInRange
+        );
         AddHook(
             typeof(NailSlashTerrainThunk),
             nameof(NailSlashTerrainThunk.OnCollisionEnter2D),
@@ -854,6 +860,48 @@ internal partial class GamePatcher {
         }
 
         return orig(self);
+    }
+
+    /// <summary>
+    /// Hook for <see cref="CameraManagerReference.DoShake"/> to skip camera shakes caused by a remote player's attack.
+    /// Hit, break and kill shakes of enemies and breakables are meant as feedback for the player that attacks, so
+    /// without this patch the local screen shakes every time a remote player hits something. Every
+    /// <see cref="CameraShakeTarget"/> goes through this method.
+    /// </summary>
+    private void CameraManagerReferenceOnDoShake(
+        Action<CameraManagerReference, ICameraShake, UnityEngine.Object, bool, bool, bool> orig,
+        CameraManagerReference self,
+        ICameraShake shake,
+        UnityEngine.Object source,
+        bool doFreeze,
+        bool vibrate,
+        bool sendWorldForce
+    ) {
+        if (_suppressHeroKnockback) {
+            return;
+        }
+
+        orig(self, shake, source, doFreeze, vibrate, sendWorldForce);
+    }
+
+    /// <summary>
+    /// Hook for <see cref="CameraManagerReference.DoShakeInRange"/>, same as <see cref="CameraManagerReferenceOnDoShake"/>.
+    /// </summary>
+    private void CameraManagerReferenceOnDoShakeInRange(
+        Action<CameraManagerReference, ICameraShake, UnityEngine.Object, Vector2, Vector2, bool, bool> orig,
+        CameraManagerReference self,
+        ICameraShake shake,
+        UnityEngine.Object source,
+        Vector2 range,
+        Vector2 sourcePos,
+        bool doFreeze,
+        bool vibrate
+    ) {
+        if (_suppressHeroKnockback) {
+            return;
+        }
+
+        orig(self, shake, source, range, sourcePos, doFreeze, vibrate);
     }
 
     /// <summary>

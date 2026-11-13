@@ -339,6 +339,28 @@ internal class SaveManager {
                 setCurrentBoolAction = value => breakable.isBroken = value;
             }
 
+            // The battle scene only reads its persistent bool when the scene loads. When the scene host finishes the
+            // battle while we are in the arena, setting the value alone leaves the gates closed and the camera
+            // locked, so run the end of the battle locally as well.
+            var battleScene = itemObject.GetComponent<BattleScene>();
+            if (battleScene) {
+                getCurrentBoolFunc = () => battleScene.completed;
+                setCurrentBoolAction = value => {
+                    if (!value || battleScene.completed) {
+                        return;
+                    }
+
+                    Logger.Info($"Battle scene '{itemObject.name}' completed by scene host, ending it locally");
+                    if (battleScene.isActiveAndEnabled) {
+                        battleScene.DoEndBattle();
+                    } else {
+                        // Coroutines cannot start on an inactive object: apply the "already completed" state instead
+                        battleScene.completed = true;
+                        battleScene.BattleCompleted();
+                    }
+                };
+            }
+
             var dreamPlant = itemObject.GetComponent<DreamPlant>();
             if (dreamPlant) {
                 getCurrentBoolFunc = () => dreamPlant.completed;
@@ -358,6 +380,7 @@ internal class SaveManager {
 
             var persistentFsmData = new PersistentFsmData {
                 PersistentItemKey = persistentItemData,
+                Owner = persistentBoolItem,
                 GetCurrentBool = getCurrentBoolFunc,
                 SetCurrentBool = setCurrentBoolAction,
                 LastBoolValue = getCurrentBoolFunc.Invoke()
@@ -464,7 +487,7 @@ internal class SaveManager {
 
         while (enumerator.MoveNext()) {
             var persistentFsmData = enumerator.Current;
-            if (persistentFsmData == null) {
+            if (persistentFsmData == null || persistentFsmData.IsOwnerDestroyed) {
                 continue;
             }
 
@@ -909,7 +932,11 @@ internal class SaveManager {
             foreach (var persistentFsmData in _persistentFsmData) {
                 var existingItemData = persistentFsmData.PersistentItemKey;
 
-                if (existingItemData.Id == itemData.Id && existingItemData.SceneName == itemData.SceneName) {
+                if (
+                    existingItemData.Id == itemData.Id &&
+                    existingItemData.SceneName == itemData.SceneName &&
+                    !persistentFsmData.IsOwnerDestroyed
+                ) {
                     Logger.Debug($"Setting last bool value for {existingItemData} to {value}");
                     persistentFsmData.SetCurrentBool.Invoke(value);
                     persistentFsmData.LastBoolValue = value;

@@ -31,6 +31,17 @@ internal class PersistentFsmData {
     public Action<bool> SetCurrentBool { get; init; }
     
     /// <summary>
+    /// The component that holds the value, if any. Items such as collected geo destroy themselves, after which the
+    /// value can no longer be read: the data is then skipped.
+    /// </summary>
+    public UnityEngine.Object? Owner { get; init; }
+
+    /// <summary>
+    /// Whether the owner of the value was destroyed.
+    /// </summary>
+    public bool IsOwnerDestroyed => !ReferenceEquals(Owner, null) && !Owner;
+
+    /// <summary>
     /// The last value for the integer if used.
     /// </summary>
     public int LastIntValue { get; set; }

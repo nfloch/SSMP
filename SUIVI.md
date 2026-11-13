@@ -53,7 +53,41 @@ DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 PATH=$HOME/.dotnet:$PATH dotnet build SS
 
 Aucun de ces correctifs n'a encore été vérifié en jeu.
 
+### Après la partie du 13/11 (Bonetown → Bone_01, arène des Bone Goomba)
+
+5. **Écran qui tremble quand l'autre joueur tape** : ses coups sont rejoués chez nous, et les secousses de
+   coup/casse/mort passaient. Correctif : hooks sur `CameraManagerReference.DoShake` et `DoShakeInRange`, ignorés
+   pendant le traitement d'une attaque distante (même portée que la suppression du recul).
+   - Non couvert : les secousses envoyées par FSM (`cameraShakeFSM.SendEvent`, ex. `EnemyKillShake`).
+6. **Ennemis déjà tués par l'hôte vivants et invincibles pour le joueur qui arrive** : le serveur ne stocke pas les
+   morts (`ServerManager` ne garde que les données de type `> Death`), seulement la dernière vie. Le client recevait
+   des ennemis à 0 PV qu'il n'a pas le droit de tuer (« HealthManager Die was called on client entity », 59 fois chez
+   Jojo). Correctif : `HealthManagerComponent.UpdateHealth` cache l'ennemi si l'instantané d'arrivée donne ≤ 0 PV.
+   - Log attendu : `is already dead on the scene host, hiding it`.
+7. **Murs de fin d'arène restés fermés chez le client** : la fin du combat arrivait (`Battle Scene, Bone_01, True`)
+   mais `SetValueOverride` ne prévient pas `BattleScene`. Correctif : `SaveManager` appelle `DoEndBattle()` (ou
+   `BattleCompleted()` si l'arène est inactive). Log attendu : `completed by scene host, ending it locally`.
+8. **`NullReferenceException` en boucle** (`OnUpdatePersistents` → `PersistentBoolItem.LookForMyFSM`, 136 000 fois
+   chez Papaours, log de 132 Mo) : on lisait chaque frame des objets persistants détruits (géo ramassé). Correctif :
+   `PersistentFsmData.Owner`, les données dont l'objet est détruit sont ignorées.
+
 ## Bugs ouverts
+
+### Brute au crâne (`Bone Goomba Large`, type `SkullBrute`) : la charge ne part pas vers Jojo
+
+- Elle prend la pose d'anticipation puis ne charge pas. Probablement une action du FSM `Control` qui vise encore le
+  héros local de l'hôte (le patch `EnemyTargeting` change la cible de départ, pas forcément celle de la charge).
+- Il faut la structure du FSM `Control` (états et actions de la charge) pour savoir quelle action patcher.
+
+### Arène de Bone_01 vue par le client : ennemis « en fond de salle », sans interaction
+
+- Jojo voyait la brute au fond de la salle et ne pouvait pas la toucher ; chez Papaours il la frappait, sans vrais
+  dégâts. Lors de sa première entrée, ni lui ni les ennemis ne se touchaient.
+- Piste : les ennemis de vague arrivent depuis l'arrière-plan (Z décalé, colliders coupés) puis « atterrissent ».
+  Cette transition est jouée par l'hôte et ne semble pas arriver chez le client. `SkullBrute` n'a que le composant
+  `Rotation` dans `entity-registry.json`, sans `ZPosition`.
+- Autre piste : le `BattleScene` du client démarre aussi sa propre vague quand il entre dans l'arène.
+- À vérifier après les correctifs 6 et 7, qui changent ce que voit le client.
 
 ### Mur de lianes « One Way VineWall » (Tut_02) incassable
 

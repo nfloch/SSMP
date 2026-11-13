@@ -444,6 +444,16 @@ internal class HealthManagerComponent : EntityComponent {
         if (alreadyInSceneUpdate) {
             ResetHealthOrderingForEpoch(healthEpoch);
             ApplyHp(newHp, triggerHostDeath: false);
+
+            // The server does not store death events for players entering the scene later, only the last health.
+            // An enemy that the scene host already killed would otherwise stay alive on this client, at 0 HP and
+            // unkillable, since the client entity is not allowed to die by itself. Hide it instead of replaying the
+            // death, which would emit a corpse and drops.
+            var client = _healthManager.Client;
+            if (newHp <= 0 && IsControlled && client != null && client.gameObject.activeSelf) {
+                Logger.Info($"Entity '{client.name}' is already dead on the scene host, hiding it");
+                client.gameObject.SetActive(false);
+            }
         } else {
             // Cache once; avoids re-evaluating the IsControlled check twice below on every packet
             var isControlled = IsControlled;
