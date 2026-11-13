@@ -119,6 +119,13 @@ Aucun de ces correctifs n'a encore été vérifié en jeu.
     (log `Broadcasting event register 'BEAST DEFEATED' from scene host`).
 - À vérifier en jeu : un joueur qui meurt et revient pendant le combat de l'autre. Si un joueur a déjà battu le
   boss, il ne voit pas celui de l'autre : c'est la conséquence de « chacun la sienne ».
+- **Règle de jeu : c'est l'hôte de la salle (premier arrivé) qui doit entrer le premier dans l'arène.** Le boss ne
+  se réveille qu'avec le `BATTLE START` envoyé par la zone `Return Battle`, objet local. SSMP ne transmet les actions
+  que de l'hôte vers les clients : si un client entre en premier, ses murs se ferment mais le boss de l'hôte reste
+  endormi jusqu'à ce que l'hôte entre à son tour. Transfert client → hôte du lancement de combat : non prévu pour
+  l'instant (décision du 13/11).
+- Hôte ayant déjà battu le boss : le boss n'existe pas dans son jeu, donc la copie de l'autre joueur resterait figée
+  et intouchable. Piste : laisser un joueur contrôler lui-même les ennemis absents chez l'hôte (non fait).
 - Cloches qui tombent (`BoneBeast DropBell …`, `BoneBeast AtkBell …`) : objets de décor avec leur propre FSM, que le
   boss déclenche par `SendEventByName`. Chaque jeu les fait tomber à sa façon, d'où des cloches différentes.
 
