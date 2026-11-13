@@ -53,6 +53,17 @@ internal class ModServerManager : ServerManager {
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// Copies the host's tools, crests, collectables, quests and journal to the connecting player, since these are
+    /// not synced nor stored per player. Each player then keeps their own copy for the session.
+    /// </remarks>
+    protected override void AddLoginSaveData(Networking.Packet.Data.CurrentSave currentSave) {
+        foreach (var (index, value) in LoginSaveCopy.EncodeFromLocalPlayerData()) {
+            currentSave.SaveData[index] = value;
+        }
+    }
+
+    /// <inheritdoc />
     public override void Initialize() {
         base.Initialize();
 

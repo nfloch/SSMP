@@ -276,6 +276,14 @@ internal abstract class ServerManager : IServerManager {
     /// <summary>
     /// Register the default server commands.
     /// </summary>
+    /// <summary>
+    /// Adds data to the save sent to a player when they log in, on top of the stored save data. Nothing by default:
+    /// a server running inside the game copies the host's inventory (see <see cref="Client.Save.LoginSaveCopy"/>).
+    /// </summary>
+    /// <param name="currentSave">The save that will be sent to the connecting player.</param>
+    protected virtual void AddLoginSaveData(CurrentSave currentSave) {
+    }
+
     protected virtual void RegisterCommands() {
         CommandManager.RegisterCommand(_listCommand);
         CommandManager.RegisterCommand(_whiteListCommand);
@@ -1599,6 +1607,7 @@ internal abstract class ServerManager : IServerManager {
         if (FullSynchronisation) {
             // Obtain the save data for the connecting client and add it to the server info
             serverInfo.CurrentSave = ServerSaveData.GetCurrentSaveData(clientInfo.AuthKey);
+            AddLoginSaveData(serverInfo.CurrentSave);
         }
 
         // Create new player data and store it

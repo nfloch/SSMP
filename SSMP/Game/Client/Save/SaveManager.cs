@@ -796,6 +796,12 @@ internal class SaveManager {
 
             Logger.Info($"Received save update ({index}, {name})");
 
+            // Inventory/progression structures copied from the host at login, encoded as gzipped JSON
+            if (name != null && LoginSaveCopy.IsCopied(name)) {
+                LoginSaveCopy.Apply(name, encodedValue);
+                return;
+            }
+
             var decodedObject = DecodeSaveDataValue(name, encodedValue);
 
             switch (decodedObject) {

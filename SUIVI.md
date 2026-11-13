@@ -111,6 +111,18 @@ Aucun de ces correctifs n'a encore été vérifié en jeu.
     - Limite : chez les autres, seule la valeur sauvegardée change ; l'objet peut ne bouger qu'en rentrant dans la
       salle (même mécanisme que l'arène, à traiter au cas par cas).
 
+### Inventaire de Jojo à moitié remis à zéro (partie du 13/11 soir)
+
+12. **Outils, objets, quêtes… perdus à chaque connexion du joueur distant** : avec la synchro complète, il repart
+    d'une partie vierge à laquelle SSMP applique la sauvegarde gardée par le serveur. Les structures complexes de
+    PlayerData (`Tools`, `ToolEquips`, `Collectables`, `Relics`, `QuestCompletionData`, `EnemyJournalKillData`…) sont
+    en `Sync: false` : ni envoyées ni stockées. Décision : **à la connexion, copie de celles de l'hôte, puis chacun
+    les siens pendant la session.** Correctif : `LoginSaveCopy` (JSON du jeu via `JsonUtility`, compressé), ajouté
+    par `ModServerManager.AddLoginSaveData` à la sauvegarde envoyée au login et appliqué par `SaveManager`.
+    - Logs attendus : `Copying N inventory/progression structures` chez l'hôte, `Applied host copy of 'Tools' at
+      login` chez le client.
+    - Ce que le client gagne pendant la session est perdu à sa prochaine connexion (il reprend la copie de l'hôte).
+
 ## Bugs ouverts
 
 ### Boss : chacun sa victoire, mais on peut rejoindre un combat en cours (décision du 13/11)
@@ -148,6 +160,7 @@ Aucun de ces correctifs n'a encore été vérifié en jeu.
 - 16h04 : écran de Papaours qui tremble quand Jojo frappe de la soie (secousse sans doute envoyée hors du coup,
   par FSM, non couverte par le correctif 5).
 - 16h14 : baie de mousse lâchée par un ennemi tué par Jojo, restée en l'air chez Papaours.
+- 18h02 (partie du soir) : un ennemi buggé chez Papaours. En attente des logs et des notes de la partie.
 
 ### Mur de lianes « One Way VineWall » (Tut_02) incassable
 
