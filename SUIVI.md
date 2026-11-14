@@ -136,6 +136,7 @@ Aucun de ces correctifs n'a encore été vérifié en jeu.
 7. **Murs de fin d'arène restés fermés chez le client** : la fin du combat arrivait (`Battle Scene, Bone_01, True`)
    mais `SetValueOverride` ne prévient pas `BattleScene`. Correctif : `SaveManager` appelle `DoEndBattle()` (ou
    `BattleCompleted()` si l'arène est inactive). Log attendu : `completed by scene host, ending it locally`.
+   Depuis le 14/11, passe par `Encounter.EndLocally` (voir `docs/arenes.md`).
 8. **`NullReferenceException` en boucle** (`OnUpdatePersistents` → `PersistentBoolItem.LookForMyFSM`, 136 000 fois
    chez Papaours, log de 132 Mo) : on lisait chaque frame des objets persistants détruits (géo ramassé). Correctif :
    `PersistentFsmData.Owner`, les données dont l'objet est détruit sont ignorées.
@@ -201,11 +202,12 @@ Aucun de ces correctifs n'a encore été vérifié en jeu.
 
 ## Bugs ouverts
 
-### Boss : chacun sa victoire, mais on peut rejoindre un combat en cours (décision du 13/11)
+### Boss et arènes : notes sur Bell Beast
 
-- Les victoires restent propres à chaque joueur (`defeatedBellBeast` en `SyncType: Player`). Un joueur mort pendant
-  le combat doit pouvoir revenir dans l'arène pendant que l'autre se bat : y entrer, ne plus pouvoir en sortir, et
-  voir le boss synchronisé.
+Les règles en vigueur (tous présents, mort grise, victoires communes, PV des boss) sont dans `PRINCIPES.md`, et
+l'architecture de la zone dans `docs/arenes.md`. Les décisions du 13/11 (« chacun sa victoire », « l'hôte de salle
+entre le premier », retour depuis le banc pendant le combat) sont remplacées depuis le 14/11. Ce qui reste valable :
+
 - Bell Beast (`bone_05_boss.bundle`), lu avec `tools/fsm` :
   - Murs `Threaded Bell Gate` : ouverts au chargement, fermés par `BG CLOSE`, rouverts par `BG OPEN`, sans état
     sauvegardé. Celui qui revient trouve donc les murs ouverts et peut entrer.
@@ -215,15 +217,6 @@ Aucun de ces correctifs n'a encore été vérifié en jeu.
     (murs rouverts, cœur de soie, `SetPlayerDataBool`). Cette action n'était pas rejouée chez les clients : celui
     qui avait rejoint serait resté enfermé. Correctif : synchro de `SendEventToRegister` dans `EntityFsmActions`
     (log `Broadcasting event register 'BEAST DEFEATED' from scene host`).
-- À vérifier en jeu : un joueur qui meurt et revient pendant le combat de l'autre. Si un joueur a déjà battu le
-  boss, il ne voit pas celui de l'autre : c'est la conséquence de « chacun la sienne ».
-- **Règle de jeu : c'est l'hôte de la salle (premier arrivé) qui doit entrer le premier dans l'arène.** Le boss ne
-  se réveille qu'avec le `BATTLE START` envoyé par la zone `Return Battle`, objet local. SSMP ne transmet les actions
-  que de l'hôte vers les clients : si un client entre en premier, ses murs se ferment mais le boss de l'hôte reste
-  endormi jusqu'à ce que l'hôte entre à son tour. Transfert client → hôte du lancement de combat : non prévu pour
-  l'instant (décision du 13/11).
-- Hôte ayant déjà battu le boss : le boss n'existe pas dans son jeu, donc la copie de l'autre joueur resterait figée
-  et intouchable. Piste : laisser un joueur contrôler lui-même les ennemis absents chez l'hôte (non fait).
 - Cloches qui tombent (`BoneBeast DropBell …`, `BoneBeast AtkBell …`) : objets de décor avec leur propre FSM, que le
   boss déclenche par `SendEventByName`. Chaque jeu les fait tomber à sa façon, d'où des cloches différentes.
 
@@ -273,12 +266,14 @@ autres peuvent arriver n'importe où et seront repris avec les prochains logs (h
     est à la racine de la scène : le combat ne finissait jamais et les portes restaient fermées. Correctif : à la mort
     de la copie, l'objet hôte est retiré de sa vague et le combat recompte (log `removing it from the enemies of
     battle`).
+    Depuis le 14/11, la fin chez le client suit celle de l'hôte ; ce correctif garde les vagues locales à jour pour
+    un client qui devient hôte de salle.
 
 ### Partie du 14/11 00:44, à trois avec KlayFouly, build `7b3cf20` (issues nfloch/ssmp-bugs, à tester)
 
 23. **Logs jamais envoyés** : le Mono d'Unity fait échouer un POST sans contenu (NullReferenceException). Les
     requêtes Gokapi sans contenu envoient un corps vide (`LogUploader`).
-24. **Arène et musique de Mossbone Mother absentes chez les clients (#4), alarme de Room_Forge décalée (#2)** :
+24. **(remplacé par `EncounterComponent`, voir 30) Arène et musique de Mossbone Mother absentes chez les clients (#4), alarme de Room_Forge décalée (#2)** :
     l'arène et la musique ne démarraient que chez l'hôte de salle, ou chez chacun via son propre déclencheur.
     `BattleComponent` envoie l'état de l'arène de l'hôte (en cours / terminée, stocké par le serveur) ; un client, y
     compris arrivé en retard, démarre la sienne s'il est dans l'arène et la termine avec l'hôte ; son propre
@@ -296,6 +291,12 @@ autres peuvent arriver n'importe où et seront repris avec les prochains logs (h
     à chacun gardé par le serveur. Logs `[InvSync]`.
 29. **Tutoriel d'une compétence obtenue par un autre joueur (#7)** : `AbilityTutorials`, affiché quand le joueur
     est libre. Logs `[AbilityTuto]`.
+30. **Arènes et boss en coop (#8)** : tous les joueurs présents pour démarrer (`ArenaWait`, message « Nul fil ne
+    doit être laissé en arrière », portes de progression fermées), mort grise de 20 s (`DownedManager`), victoires
+    et rencontres communes, PV des boss multipliés (`/set bosshp`), puis revue d'architecture : une seule notion de
+    rencontre en cours (`Encounter`, `EncounterTracker`, `EncounterComponent`, arènes `BattleScene` et boss à murs
+    comme Bell Beast). Architecture : `docs/arenes.md`. Logs `[Encounter]`, `[ArenaWait]`, `[Downed]`, `[BossHp]`,
+    `[Victory]`.
 - Ces correctifs ajoutent des paquets et des composants réseau : tout le monde doit avoir le même build.
 - Logs : chaque joueur écrit maintenant son inventaire, son équipement et ses capacités (`[Inventory]`) en entrant
   dans la partie et à chaque banc.
