@@ -220,13 +220,14 @@ internal class LogUploader {
             throw new InvalidOperationException($"Unexpected reserve answer: {reserve}");
         }
 
-        using (var form = new MultipartFormDataContent()) {
-            form.Add(new ByteArrayContent(bytes), "file", "blob");
-            form.Add(new StringContent(uuid), "uuid");
-            form.Add(new StringContent(bytes.Length.ToString()), "filesize");
-            form.Add(new StringContent("0"), "offset");
-            await Send(client, $"{api}/add", form, ("apikey", apiKey), ("fileRequestId", requestId));
-        }
+        // Not in a using: Send disposes the request, which disposes its content. Unity's Mono MultipartContent throws a
+        // NullReferenceException when disposed a second time.
+        var form = new MultipartFormDataContent();
+        form.Add(new ByteArrayContent(bytes), "file", "blob");
+        form.Add(new StringContent(uuid), "uuid");
+        form.Add(new StringContent(bytes.Length.ToString()), "filesize");
+        form.Add(new StringContent("0"), "offset");
+        await Send(client, $"{api}/add", form, ("apikey", apiKey), ("fileRequestId", requestId));
 
         await Send(
             client, $"{api}/complete", null,
@@ -248,8 +249,7 @@ internal class LogUploader {
             request.Headers.TryAddWithoutValidation(headerName, value);
         }
 
-        // Unity's Mono fails a POST without content (its handler then throws a NullReferenceException on the missing
-        // response), so the requests without a body send an empty one
+        // The requests without a body send an empty one
         request.Content = content ?? new ByteArrayContent([]);
 
         using var response = await client.SendAsync(request);
