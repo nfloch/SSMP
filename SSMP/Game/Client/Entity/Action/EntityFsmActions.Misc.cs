@@ -214,6 +214,16 @@ internal static partial class EntityFsmActions {
     private static bool GetNetworkDataFromAction(EntityNetworkData data, CallMethodProper action) {
         //Logger.Debug($"Getting network data for CallMethodProper: {action.Fsm.GameObject.name}, {action.Fsm.Name}");
 
+        // Bosses like Mossbone Mother (Tut_03) start their arena themselves: their FSM calls BattleScene.StartBattle,
+        // whose collider trigger is disabled. Without this, clients never close the gates or lock the camera.
+        if (IsBattleSceneStart(action)) {
+            Logger.Info(
+                $"Broadcasting BattleScene.{action.methodName.Value} from '{action.Fsm.GameObject.name}' " +
+                $"('{action.Fsm.Name}') as scene host"
+            );
+            return true;
+        }
+
         return action.Fsm.GameObject.name.StartsWith("Colosseum Manager") &&
                action.Fsm.Name.Equals("Battle Control") ||
                action.Fsm.GameObject.name.StartsWith("Mantis Lord Throne") &&
@@ -222,10 +232,24 @@ internal static partial class EntityFsmActions {
                action.Fsm.Name.Equals("Control");
     }
 
+    /// <summary>
+    /// Whether the action starts a battle scene (arena gates, camera locks, waves), which clients must replay.
+    /// </summary>
+    private static bool IsBattleSceneStart(CallMethodProper action) {
+        return action.behaviour.Value == nameof(BattleScene) &&
+               action.methodName.Value is nameof(BattleScene.StartBattle) or nameof(BattleScene.LockInBattle);
+    }
+
     /// <summary>Applies network data to the FSM action.</summary>
     private static void ApplyNetworkDataFromAction(EntityNetworkData data, CallMethodProper action) {
         if (action.behaviour.Value == null) {
             return;
+        }
+
+        if (IsBattleSceneStart(action)) {
+            Logger.Info(
+                $"Applying BattleScene.{action.methodName.Value} from scene host for '{action.Fsm.GameObject.name}'"
+            );
         }
 
         var gameObject = action.Fsm.GetOwnerDefaultTarget(action.gameObject);

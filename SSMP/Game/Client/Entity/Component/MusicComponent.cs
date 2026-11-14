@@ -226,6 +226,11 @@ internal class MusicComponent : EntityComponent {
 
         if (IsControlled) return;
 
+        if (IsPersistentObject(action.Fsm.GameObject)) {
+            Logger.Debug("  FSM on a DontDestroyOnLoad object (hero, camera), skipping");
+            return;
+        }
+
         if (action.musicCue.Value is not MusicCue musicCue) return;
 
         if (!MusicCueDataByName.TryGetValue(musicCue.name, out var cueData)) {
@@ -233,7 +238,7 @@ internal class MusicComponent : EntityComponent {
             return;
         }
 
-        Logger.Debug($"  Sending index: {cueData.Index}");
+        Logger.Info($"Sending music cue '{musicCue.name}' from '{action.Fsm.GameObject.name}' as scene host");
 
         SendMusicPacket(cueData.Index, _lastSnapshotIndex);
         _lastMusicCueIndex = cueData.Index;
@@ -255,6 +260,13 @@ internal class MusicComponent : EntityComponent {
 
         if (IsControlled) return;
 
+        // The hook sees every FSM, including the hero's own ones (e.g. 'Hero Damaged Effects' lowpass when the host
+        // is hit), which live in DontDestroyOnLoad. Those are local to the host and must not reach the clients.
+        if (IsPersistentObject(action.Fsm.GameObject)) {
+            Logger.Debug("  FSM on a DontDestroyOnLoad object (hero, camera), skipping");
+            return;
+        }
+
         if (action.snapshot.Value is not AudioMixerSnapshot snapshot) return;
 
         if (!SnapshotDataByName.TryGetValue(snapshot.name, out var snapshotData)) {
@@ -266,6 +278,13 @@ internal class MusicComponent : EntityComponent {
 
         SendMusicPacket(_lastMusicCueIndex, snapshotData.Index);
         _lastSnapshotIndex = snapshotData.Index;
+    }
+
+    /// <summary>
+    /// Whether the object lives in DontDestroyOnLoad (hero, camera, managers) instead of the current scene.
+    /// </summary>
+    private static bool IsPersistentObject(GameObject gameObject) {
+        return gameObject != null && gameObject.scene.name == "DontDestroyOnLoad";
     }
 
     /// <summary>
@@ -321,7 +340,7 @@ internal class MusicComponent : EntityComponent {
                 return;
             }
 
-            Logger.Debug($"  Applying music cue ({cueData.Name}, {cueData.Type})");
+            Logger.Info($"Applying music cue '{cueData.Name}' from scene host");
             global::GameManager.instance.AudioManager.ApplyMusicCue(cueData.MusicCue, 0f, 0f, false);
             return;
         }
