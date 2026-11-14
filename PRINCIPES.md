@@ -82,6 +82,8 @@ retrouver l'état actuel de la salle**, pas l'état de départ (Papaours, 14/11 
    son dernier banc ; le combat est remis à zéro.
    Un joueur revenu après ses 20 s mais encore dehors compte comme « en attente » : il meurt aussi (Papaours,
    14/11).
+   **Victoire pendant qu'un joueur est à terre** : il revit tout de suite sur place, là où il est tombé, avant la
+   séquence de fin du combat, pour la vivre comme les autres et recevoir les mêmes récompenses (Papaours, 14/11).
 4. **Les monstres sont toujours synchronisés** (hôte de salle).
 5. **Victoires communes** : battre un boss vaut pour tous (`defeated*` en commun). Remplace « chacun sa victoire »
    du 13/11.
