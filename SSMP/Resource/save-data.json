@@ -6305,28 +6305,28 @@
     },
     "hasBrolly": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "hasChargeSlash": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "hasDash": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "hasDoubleJump": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
@@ -6340,7 +6340,7 @@
     },
     "hasHarpoonDash": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
@@ -6403,28 +6403,28 @@
     },
     "hasNeedleThrow": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "hasNeedolin": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "hasNeedolinMemoryPowerup": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "hasParry": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
@@ -6522,49 +6522,49 @@
     },
     "hasSilkBomb": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "hasSilkBossNeedle": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "hasSilkCharge": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "hasSilkSpecial": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "hasSuperJump": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "hasThreadSphere": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "hasWalljump": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
