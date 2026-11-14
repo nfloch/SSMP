@@ -22,6 +22,9 @@ namespace SSMP.Game.Client.Downed;
 /// with a grey screen, a countdown, and the camera on an alive teammate.</item>
 /// <item>Then it comes back healed next to the arena, in the same scene (the hazard respawn sequence of the game),
 /// with the gates open in its own game until it is back inside the arena, where they close again.</item>
+/// <item>If the others win while it is down, it comes back at once on the spot where it fell, before the end of the
+/// encounter plays in its game, so it lives the end and gets its own rewards (<see cref="EncounterTracker.Ending"/>).
+/// </item>
 /// <item>When nobody is left alive inside the arena (every player downed, or back outside waiting to return), every
 /// such player really dies (vanilla death, cocoon, bench). Once the scene is empty, the server drops its stored
 /// entity data, so the arena starts from scratch for the next player.</item>
@@ -82,6 +85,8 @@ internal class DownedManager {
     /// <summary>The encounter of the current downed or waiting phase.</summary>
     private Encounter? _battle;
 
+    /// <summary>Where the hero fell, to come back there if the encounter is won while downed.</summary>
+    private Vector2 _downedPosition;
 
     /// <summary>The unscaled time at which the downed phase ends.</summary>
     private float _downedEnd;
@@ -116,6 +121,7 @@ internal class DownedManager {
         EventHooks.HeroControllerDieOverride = OnHeroDie;
         MonoBehaviourUtil.Instance.OnUpdateEvent += OnUpdate;
         SceneManager.activeSceneChanged += OnActiveSceneChanged;
+        EncounterTracker.Ending += OnEncounterEnding;
     }
 
     #region Local hero
@@ -178,6 +184,7 @@ internal class DownedManager {
         bool frostDeath) {
         _phase = Phase.Downed;
         _battle = battle;
+        _downedPosition = hero.transform.position;
         _downedEnd = Time.unscaledTime + DownedSeconds;
         _nobodyAliveSince = -1f;
 
@@ -362,7 +369,7 @@ internal class DownedManager {
         StopFollowing();
         DownedOverlay.Get().Hide();
 
-        var spot = ChooseRespawnSpot(hero, battle, out var source);
+        var spot = ChooseRespawnSpot(hero, battle, null, out var source);
         var facingRight = battle != null ? battle.Center.x > spot.x : hero.cState.facingRight;
         hero.playerData.SetHazardRespawn(spot, facingRight);
         Logger.Info($"[Downed] Coming back at {spot} ({source}), healed to full health");
@@ -374,16 +381,49 @@ internal class DownedManager {
             battle.OpenForReentry();
         }
 
-        MonoBehaviourUtil.Instance.StartCoroutine(RespawnRoutine(hero, battle));
+        MonoBehaviourUtil.Instance.StartCoroutine(RespawnRoutine(hero, battle, true));
     }
 
     /// <summary>
-    /// Fades out, then runs the game's hazard respawn at the chosen spot.
+    /// The encounter ends in this game (won by the players still standing) while the local hero is down: it comes
+    /// back at once, healed, on the spot where it fell inside the arena, before the end sequence plays here, so it
+    /// lives the end (gates, boss end, silk heart…) like the others and gets its own rewards.
     /// </summary>
-    private IEnumerator RespawnRoutine(HeroController hero, Encounter? battle) {
+    private void OnEncounterEnding(Encounter encounter) {
+        if (_phase != Phase.Downed || _battle != encounter) {
+            return;
+        }
+
+        var hero = HeroController.instance;
+        if (hero == null) {
+            return;
+        }
+
+        Logger.Info($"[Downed] Battle '{encounter.Name}' won while downed, coming back on the spot before its end");
+        _phase = Phase.Respawning;
+        _nobodyAliveSince = -1f;
+
+        StopFollowing();
+        DownedOverlay.Get().Hide();
+
+        var spot = ChooseRespawnSpot(hero, null, _downedPosition, out var source);
+        hero.playerData.SetHazardRespawn(spot, hero.cState.facingRight);
+        Logger.Info($"[Downed] Coming back at {spot} ({source}), healed to full health");
+        hero.MaxHealth();
+
+        MonoBehaviourUtil.Instance.StartCoroutine(RespawnRoutine(hero, null, false));
+    }
+
+    /// <summary>
+    /// Fades out (unless coming back on the spot at the end of the encounter, which must be at once), then runs the
+    /// game's hazard respawn at the chosen spot.
+    /// </summary>
+    private IEnumerator RespawnRoutine(HeroController hero, Encounter? battle, bool fade) {
         var gm = global::GameManager.instance;
-        gm.screenFader_fsm.SendEventSafe("HAZARD FADE");
-        yield return new WaitForSeconds(FadeOutSeconds);
+        if (fade) {
+            gm.screenFader_fsm.SendEventSafe("HAZARD FADE");
+            yield return new WaitForSeconds(FadeOutSeconds);
+        }
 
         if (hero == null || _phase != Phase.Respawning) {
             yield break;
@@ -407,13 +447,17 @@ internal class DownedManager {
     }
 
     /// <summary>
-    /// Chooses where the hero comes back: a ground point outside the arena, from the hazard respawn point, the last
-    /// position outside the arenas, or the respawn point of the gate the hero entered the scene from.
+    /// Chooses where the hero comes back: a ground point outside the given arena (none: anywhere), from the given
+    /// spot first, then the hazard respawn point, the last position outside the arenas, or the respawn point of the
+    /// gate the hero entered the scene from.
     /// </summary>
-    private Vector2 ChooseRespawnSpot(HeroController hero, Encounter? battle, out string source) {
-        var candidates = new List<(Vector2, string)> {
-            (hero.playerData.hazardRespawnLocation, "hazard respawn point")
-        };
+    private Vector2 ChooseRespawnSpot(HeroController hero, Encounter? battle, Vector2? first, out string source) {
+        var candidates = new List<(Vector2, string)>();
+        if (first.HasValue) {
+            candidates.Add((first.Value, "where the hero fell"));
+        }
+
+        candidates.Add((hero.playerData.hazardRespawnLocation, "hazard respawn point"));
         if (_lastOutsidePosition.HasValue) {
             candidates.Add((_lastOutsidePosition.Value, "last position outside the arena"));
         }
