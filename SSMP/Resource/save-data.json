@@ -1474,35 +1474,35 @@
     },
     "HasAbyssMap": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "HasAqueductMap": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "HasArboriumMap": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "HasBellhartMap": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "HasBoneforestMap": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
@@ -1516,98 +1516,98 @@
     },
     "HasCitadelUnderstoreMap": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "HasCloverMap": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "HasCogMap": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "HasCoralMap": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "HasCradleMap": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "HasCrawlMap": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "HasDocksMap": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "HasDustpensMap": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "HasGreymoorMap": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "HasHallsMap": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "HasHangMap": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "HasHuntersNestMap": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "HasJudgeStepsMap": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "HasLibraryMap": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
@@ -1635,14 +1635,14 @@
     },
     "HasMossGrottoMap": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "HasPeakMap": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
@@ -1761,7 +1761,7 @@
     },
     "HasShellwoodMap": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
@@ -1789,14 +1789,14 @@
     },
     "HasSlabMap": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "HasSongGateMap": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
@@ -1810,28 +1810,28 @@
     },
     "HasSwampMap": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "HasWardMap": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "HasWeavehomeMap": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "HasWildsMap": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
@@ -2888,7 +2888,7 @@
     },
     "QuillState": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Int32",
       "Additive": false
@@ -6361,42 +6361,42 @@
     },
     "hasMarker": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "hasMarker_a": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "hasMarker_b": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "hasMarker_c": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "hasMarker_d": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "hasMarker_e": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
@@ -6431,91 +6431,91 @@
     },
     "hasPinBench": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "hasPinCocoon": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "hasPinFleaBlastedlands": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "hasPinFleaCitadel": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "hasPinFleaMarrowlands": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "hasPinFleaMidlands": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "hasPinFleaMucklands": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "hasPinFleaPeaklands": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "hasPinShop": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "hasPinSpa": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "hasPinStag": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "hasPinTube": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "hasQuill": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
@@ -6741,7 +6741,7 @@
     },
     "mapAllRooms": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
