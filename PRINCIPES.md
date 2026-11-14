@@ -67,8 +67,12 @@ retrouver l'état actuel de la salle**, pas l'état de départ (Papaours, 14/11 
   fin (13/11, puis 14/11).
 - Le démarrage d'une arène (`BattleScene.StartBattle` / `LockInBattle`) et sa fin sont transmis par l'hôte de salle,
   quel que soit le boss (nfloch/ssmp-bugs#4). La musique de boss l'est aussi.
-- Règle de jeu actuelle : l'hôte de salle entre le premier dans l'arène (le lancement de combat par un client n'est
-  pas transmis, décision du 13/11).
+- L'arène suit celle de l'hôte de salle, qu'elle démarre par sa zone de déclenchement ou par le FSM d'un boss
+  (`BattleComponent`, 14/11, nfloch/ssmp-bugs#4 et #2) : chez un client, elle démarre quand celle de l'hôte est en
+  cours et que son héros est dans l'arène, et se termine quand celle de l'hôte se termine. La zone de déclenchement
+  d'un client est ignorée.
+- Règle de jeu actuelle : l'hôte de salle entre le premier dans l'arène. Un client qui y entre avant lui n'est pas
+  enfermé, il attend que l'hôte lance le combat (décision du 13/11 ; conséquence du 14/11 à confirmer par Papaours).
 - Un hôte qui a déjà battu le boss ne l'a plus dans son jeu : le combat d'un autre joueur ne marche pas dans ce cas
   (piste non faite : laisser ce joueur simuler les ennemis absents chez l'hôte).
 
