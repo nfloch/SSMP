@@ -150,8 +150,9 @@ internal class BattleComponent : EntityComponent {
         if (_state != StateStarted && _battleScene.started) {
             newState = StateStarted;
 
-            // A battle completed in the save (another player's victory, synced by the server) would never end:
-            // EndBattle returns at once when completed is set
+            // Completion is shared, and ArenaWait never starts a completed arena: a start while completed means an
+            // FSM started it anyway (save and arena out of step). EndBattle returns at once when completed is set,
+            // so the arena would never end and the gates would stay closed: let it end
             if (_battleScene.completed) {
                 Logger.Info($"Battle '{_battleScene.name}' started while completed in the save, letting it end");
                 _battleScene.completed = false;
@@ -241,8 +242,12 @@ internal class BattleComponent : EntityComponent {
             yield break;
         }
 
-        // A battle completed in the save (another player's victory, synced by the server) would never end
-        _battleScene.completed = false;
+        // Completion is shared (nfloch/ssmp-bugs#8): completed here means the scene host's arena already ended and
+        // its end is on its way. Starting it again would close the gates on a finished battle
+        if (_battleScene.completed) {
+            Logger.Info($"Battle '{_battleScene.name}' is already completed (shared), not starting it");
+            yield break;
+        }
 
         Logger.Info($"Starting battle '{_battleScene.name}' started by the scene host");
         _battleScene.StartBattle();
