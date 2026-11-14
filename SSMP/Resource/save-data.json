@@ -1029,14 +1029,14 @@
     },
     "DefeatedBonetownBoss": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "DefeatedSwampShaman": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
@@ -1113,21 +1113,21 @@
     },
     "EncounteredBonetownBoss": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "EncounteredLostLace": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "EncounteredSummonedSaviour": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
@@ -3849,7 +3849,7 @@
     },
     "ant02GuardDefeated": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
@@ -4469,7 +4469,7 @@
     },
     "citadel_encounteredFencers": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
@@ -4846,273 +4846,273 @@
     },
     "defeatedAntQueen": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedAntQueenAfterRedMemory": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedAntTrapper": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedBellBeast": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedBoneFlyerGiant": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedBoneFlyerGiantGolemScene": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedBroodMother": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedCloverDancers": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedCogworkDancers": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedCoralBridgeGuard1": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedCoralBridgeGuard2": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedCoralDrillerSolo": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedCoralDrillers": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedCoralKing": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedCrowCourt": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedDockForemen": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedFirstWeaver": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedFlowerQueen": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedGreyWarrior": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedGuardBoneEast25": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedLace1": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedLaceTower": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedLastJudge": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedMossEvolver": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedMossMother": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedPhantom": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedRoachkeeperChef": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedSeth": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedShellwoodRosaryPilgrim": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedSongChevalierBoss": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedSongGolem": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedSplinterQueen": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedTormentedTrobbio": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedTrobbio": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedVampireGnatBoss": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedWhiteCloverstag": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedWispPyreEffigy": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedZapCoreEnemy": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "defeatedZapGuard1": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
@@ -5317,133 +5317,133 @@
     },
     "encounteredAntTrapper": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "encounteredBellBeast": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "encounteredCloverDancers": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "encounteredCogworkDancers": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "encounteredCoralDrillerSolo": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "encounteredCoralDrillers": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "encounteredCoralKing": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "encounteredCrowCourt": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "encounteredDockForemen": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "encounteredFirstWeaver": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "encounteredFlowerQueen": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "encounteredLace1": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "encounteredLace1Grotto": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "encounteredLaceBlastedBridge": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "encounteredLaceTower": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "encounteredLastJudge": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "encounteredLibraryEntryBattle": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "encounteredMossMother": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "encounteredPhantom": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
@@ -5464,42 +5464,42 @@
     },
     "encounteredSeth": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "encounteredSilk": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "encounteredSongChevalierBoss": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "encounteredSongGolem": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "encounteredSpinner": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "encounteredSplinterQueen": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
@@ -5513,49 +5513,49 @@
     },
     "encounteredTormentedTrobbio": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "encounteredTrobbio": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "encounteredVampireGnatBoss": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "encounteredVampireGnat_05": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "encounteredVampireGnat_07": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "encounteredWhiteCloverstag": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "encounteredWhiteCloverstagMid": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
@@ -5835,7 +5835,7 @@
     },
     "garmondBlackThreadDefeated": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
@@ -8448,14 +8448,14 @@
     },
     "skullKingDefeated": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "skullKingDefeatedBlackThreaded": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
@@ -8469,7 +8469,7 @@
     },
     "skullKingKilled": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
@@ -8588,7 +8588,7 @@
     },
     "slab_cloak_battle_encountered": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
@@ -8784,7 +8784,7 @@
     },
     "spinnerDefeated": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
@@ -9303,14 +9303,14 @@
     },
     "wardBossDefeated": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
     },
     "wardBossEncountered": {
       "Sync": true,
-      "SyncType": "Player",
+      "SyncType": "Server",
       "IgnoreSceneHost": true,
       "VarType": "System.Boolean",
       "Additive": false
