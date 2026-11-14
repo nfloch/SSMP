@@ -516,6 +516,10 @@ internal class Entity {
             //addedComponentsString += " MeshRenderer";
         }
 
+        // Every entity: a player entering the scene later must get the layer the scene host's FSM set (enemies that
+        // emerge from the background only take hits once back on the enemy layer)
+        _components[EntityComponentType.Layer] = new LayerComponent(_netClient, Id, Object);
+
         EntityInitializer.RemoveClientTypes(Object.Client, Type);
 
         // Instantiate all types defined in the entity registry, which are passed to the constructor
@@ -1043,7 +1047,7 @@ internal class Entity {
             }
 
             var pos = obj.transform.position;
-            var desc = $"'{obj.name}' active={obj.activeSelf}/{obj.activeInHierarchy} pos=({pos.x:F1}, {pos.y:F1})";
+            var desc = $"'{obj.name}' active={obj.activeSelf}/{obj.activeInHierarchy} pos=({pos.x:F1}, {pos.y:F1}) layer={obj.layer}";
 
             var meshRenderer = obj.GetComponent<MeshRenderer>();
             if (meshRenderer != null) desc += $" mesh={meshRenderer.enabled}";
