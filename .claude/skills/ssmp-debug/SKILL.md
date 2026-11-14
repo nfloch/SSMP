@@ -59,11 +59,12 @@ If the user gave the end-of-session go directly, skip the wait.
 
 ## 3. Split per marker
 
-Use the session id from step 2, one `--log <player>=<merged log>` per player:
+Use the session id from step 2, one `--log <player>=<merged log>` per player of the session (there can be more than
+two: take every player of the step 2 summary, or of the `connected to the server` lines of the host's log):
 
 ```bash
 python3 -I tools/bugs/decouper-logs.py --out ../ssmp-bugs/sessions/<session> \
-  --state ~/.local/state/ssmp/markers.json --log Papaours=<…/Papaours.log> --log Jojo=<…/Jojo.log>
+  --state ~/.local/state/ssmp/markers.json --log Papaours=<…/Papaours.log> --log Jojo=<…/Jojo.log> [--log <player>=<…>]
 ```
 
 It prints `new_bugs` as JSON: number, reporter, scene, description, the marker's time in each log, and its folder.
@@ -110,10 +111,11 @@ The agents use the default model. Their prompt (fill in the placeholders):
 > You investigate one SSMP co-op bug (Hollow Knight: Silksong multiplayer mod, C#/BepInEx). You work in your own
 > git worktree of the SSMP repo, on branch `bug/<issue>`, created from `world-sync`.
 > - **Inputs:**
->   - Bug folder: `<folder>` (one `<player>.txt` per player, `meta.json`). Papaours hosts the server (player id 0), Jojo
->     is id 1, and the scene host is the first player in the room.
+>   - Bug folder: `<folder>` (one `<player>.txt` per player, `meta.json`). Players of this session: <players with
+>     their ids, from the `(id N)` of the markers>. Papaours hosts the server (id 0), and the scene host is the first
+>     player in the room.
 >   - Read `SUIVI.md` first: it lists the fixes and design decisions already made.
->   - Full logs, if the extract is not enough: the merged logs `<…/Papaours.log>` and `<…/Jojo.log>`. Use `grep -n` and `sed -n` on small
+>   - Full logs, if the extract is not enough: the merged logs `<one path per player>`. Use `grep -n` and `sed -n` on small
 >     ranges only, never read them whole.
 >   - Decompiled game code, read only: `/home/papaours/claude-projects/ssmp-build/game-src`.
 >   - Game FSMs: `tools/fsm/README.md`.

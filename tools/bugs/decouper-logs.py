@@ -12,7 +12,7 @@ prints a JSON summary of the new markers on stdout.
 
 Markers already listed in the state file are skipped, since a log sent during a game comes back in the next upload.
 
-Usage: decouper-logs.py --out <dir> --state <file> --log papa=<path> --log jojo=<path> [--before 60] [--after 30]
+Usage: decouper-logs.py --out <dir> --state <file> --log <player>=<path> [--log <player>=<path> …] [--before 60] [--after 30]
 """
 
 import argparse
