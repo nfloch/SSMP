@@ -72,7 +72,7 @@ internal class Entity {
     /// Whether the entity is a boss, from its entry in the entity registry. Its max health is multiplied by
     /// <see cref="BossHealth"/>.
     /// </summary>
-    public bool IsBoss { get; set; }
+    public bool IsBoss { get; }
 
     /// <summary>
     /// Host-client pair for the game objects.
@@ -169,6 +169,7 @@ internal class Entity {
         NetClient netClient,
         ushort id,
         EntityType type,
+        bool isBoss,
         GameObject hostObject,
         GameObject clientObject = null,
         params EntityComponentType[] types
@@ -177,6 +178,7 @@ internal class Entity {
         Id = id;
 
         Type = type;
+        IsBoss = isBoss;
 
         _isControlled = true;
 
@@ -526,11 +528,11 @@ internal class Entity {
         // emerge from the background only take hits once back on the enemy layer)
         _components[EntityComponentType.Layer] = new LayerComponent(_netClient, Id, Object);
 
-        // Entities of an arena: a player entering the scene during the battle gets the gates closed and the camera
-        // locked, and gets them opened when it ends
-        var battleComponent = BattleComponent.TryCreate(_netClient, Id, Object, _fsms.Host);
-        if (battleComponent != null) {
-            _components[EntityComponentType.Battle] = battleComponent;
+        // Entities of an encounter (arena enemies, bosses): the scene host's state of the encounter, also for a
+        // player entering the scene during the battle (docs/arenes.md)
+        var encounterComponent = EncounterComponent.TryCreate(_netClient, Id, Object, _fsms.Host, IsBoss);
+        if (encounterComponent != null) {
+            _components[EntityComponentType.Encounter] = encounterComponent;
         }
 
         // Entities whose FSM plays music (bosses): the scene host sends it, also to players entering the scene later

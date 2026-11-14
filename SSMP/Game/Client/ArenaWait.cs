@@ -6,6 +6,7 @@ using System.Reflection;
 using HutongGames.PlayMaker;
 using HutongGames.PlayMaker.Actions;
 using MonoMod.RuntimeDetour;
+using SSMP.Game.Client.Encounters;
 using SSMP.Game.Client.Entity;
 using SSMP.Game.Client.Entity.Component;
 using SSMP.Networking.Client;
@@ -25,19 +26,21 @@ namespace SSMP.Game.Client;
 /// <list type="bullet">
 /// <item>Wave arenas (<see cref="BattleScene"/>): the trigger of the local hero is held, and the arena starts once
 /// nobody is missing. On a scene client the trigger is ignored anyway: the scene host's arena rules
-/// (<see cref="BattleComponent"/>).</item>
+/// (<see cref="EncounterComponent"/>).</item>
 /// <item>Bosses that wake from their own FSM: the FSM transition into a state that starts the battle is refused
 /// while someone is missing, and replayed (<c>Fsm.SetState</c>) once everyone is in. Two kinds of states are held:
 /// a state that calls <c>BattleScene.StartBattle</c> (Mossbone Mother), and a state entered from a trigger state
 /// (<c>Trigger2dEvent*</c>) that closes gates or sends <c>BATTLE START</c> within a few <c>FINISHED</c> steps (the
-/// <c>Return Battle</c> zone of the Bell Beast). The area is the arena's collider, or the trigger's collider.</item>
+/// <c>Return Battle</c> zone of the Bell Beast). The area is the encounter's (<see cref="Encounter.Contains"/>), or
+/// else the trigger's collider.</item>
 /// <item>Any other <c>BattleScene.StartBattle</c> call while someone is missing is deferred: gates stay open.</item>
 /// <item>Progression gates: the gates of an arena not completed that are not on the side the local hero came from
 /// stay closed (see <see cref="CloseProgressionGates"/>).</item>
 /// <item>A player inside an arena that waits sees an area title: "No thread shall be left behind".</item>
 /// </list>
 /// The decision of starting is taken by the game that runs the arena: the scene host for synced arenas. Each game
-/// knows the other players of its scene and their positions, so nothing is sent over the network.
+/// knows the other players of its scene and their positions, so nothing is sent over the network. Whether an
+/// encounter is already underway comes from the shared notion (<see cref="Encounter.IsUnderwayOrDone"/>).
 /// </summary>
 internal class ArenaWait {
     /// <summary>The key given to the area title FSM, answered by <see cref="OnGetLanguageString"/>.</summary>
@@ -55,11 +58,6 @@ internal class ArenaWait {
     /// <summary>Minimum seconds between two messages when the list of missing players changes.</summary>
     private const float ChangedCooldown = 4f;
 
-    /// <summary>
-    /// A gate whose distance to the entry point is within this many units of the closest gate is an entry gate.
-    /// </summary>
-    private const float EntryGateTolerance = 4f;
-
     /// <summary>Seconds after entering a scene before the progression gates are evaluated.</summary>
     private const float GateEvaluationDelay = 1f;
 
@@ -68,6 +66,9 @@ internal class ArenaWait {
 
     /// <summary>The events that mark a state as starting a battle (closing gates, waking a boss).</summary>
     private static readonly HashSet<string> BattleStartEvents = ["BG CLOSE", "BATTLE START"];
+
+    /// <summary>How many states a held transition may look ahead for the start of a battle.</summary>
+    private const int StartSearchDepth = 3;
 
     /// <summary>The instance whose hooks are registered, for the static hook methods.</summary>
     private static ArenaWait? _instance;
@@ -91,9 +92,6 @@ internal class ArenaWait {
 
     /// <summary>The coroutine that evaluates the progression gates after entering a scene.</summary>
     private Coroutine? _gateRoutine;
-
-    /// <summary>Where the local hero entered the current scene, once placed.</summary>
-    private Vector2? _entryPoint;
 
     public ArenaWait(NetClient netClient, EntityManager entityManager, Dictionary<ushort, ClientPlayerData> playerData) {
         _netClient = netClient;
@@ -161,7 +159,7 @@ internal class ArenaWait {
         var wouldStart = hero != null && hero.isHeroInPosition && self.currentWave == 0 && !self.completed &&
                          !self.started && self.loopsUntilDeactivate <= 0;
 
-        if (BattleComponent.ShouldIgnoreTrigger(self)) {
+        if (EncounterComponent.ShouldIgnoreTrigger(self)) {
             if (wouldStart) {
                 instance.GetBattleArena(self).Triggered = true;
             }
@@ -266,8 +264,25 @@ internal class ArenaWait {
         /// <summary>The wave arena, if any.</summary>
         public BattleScene? Battle { get; init; }
 
-        /// <summary>The object whose collider is the area: the arena, or the trigger zone.</summary>
+        /// <summary>The object whose collider is the area when no encounter holds it: the trigger zone.</summary>
         public required Component AreaOwner { get; init; }
+
+        /// <summary>
+        /// The shared encounter: the arena's, or the boss encounter whose area holds the trigger zone (looked up
+        /// each time, the boss entity may register after the zone).
+        /// </summary>
+        public Encounter? Encounter => Battle != null ? EncounterTracker.ForBattle(Battle) :
+            AreaOwner != null ? EncounterTracker.FindBossEncounterAt(AreaOwner.transform.position) : null;
+
+        /// <summary>Whether the position is inside the area: the encounter's, or the trigger zone's.</summary>
+        public bool Contains(Vector2 position, float margin = 0f) {
+            var encounter = Encounter;
+            return encounter != null ? encounter.Contains(position, margin) :
+                Encounter.AreaContains(AreaOwner, position, margin);
+        }
+
+        /// <summary>Whether nothing waits any more: the encounter is underway or over.</summary>
+        public bool IsUnderwayOrDone => Encounter?.IsUnderwayOrDone ?? false;
 
         /// <summary>Whether the local hero entered the trigger of the wave arena while it could start.</summary>
         public bool Triggered { get; set; }
@@ -327,7 +342,7 @@ internal class ArenaWait {
     /// synced entities.
     /// </summary>
     private bool RunsArena(BattleScene battleScene) =>
-        _entityManager.IsSceneHost || !BattleComponent.IsSyncedArena(battleScene);
+        _entityManager.IsSceneHost || !EncounterTracker.ForBattle(battleScene).IsSynced;
 
     /// <summary>Whether other players are connected: alone, arenas start as in the base game.</summary>
     private bool HasOtherPlayers() => _netClient.IsConnected && _playerData.Count > 0;
@@ -341,19 +356,19 @@ internal class ArenaWait {
             return false;
         }
 
-        if (arena.Battle != null && IsUnderwayOrDone(arena.Battle)) {
+        if (arena.IsUnderwayOrDone) {
             return false;
         }
 
         var hero = HeroController.instance;
-        if (hero == null || !Contains(arena.AreaOwner, hero.transform.position, AreaMargin)) {
+        if (hero == null || !arena.Contains(hero.transform.position, AreaMargin)) {
             missing.Add(LocalName);
         }
 
         foreach (var player in _playerData.Values) {
             var container = player.PlayerContainer;
             if (!player.IsInLocalScene || container == null || !container.activeInHierarchy ||
-                !Contains(arena.AreaOwner, container.transform.position, AreaMargin)) {
+                !arena.Contains(container.transform.position, AreaMargin)) {
                 missing.Add(player.Username);
             }
         }
@@ -362,58 +377,10 @@ internal class ArenaWait {
         return missing.Count > 0;
     }
 
-    /// <summary>
-    /// Whether the wave arena is in progress or completed, here or on the scene host (a late arrival's arena starts
-    /// once inside): nothing waits any more.
-    /// </summary>
-    private static bool IsUnderwayOrDone(BattleScene battle) =>
-        battle.started || battle.completed || BattleComponent.IsStartedOnSceneHost(battle);
-
     /// <summary>The name of the local player in the logs (the message is only shown to players inside).</summary>
     private const string LocalName = "(local player)";
 
     private static string Join(IEnumerable<string> names) => string.Join(", ", names);
-
-    /// <summary>
-    /// Whether the given position is inside the area of the given object: its box or polygon collider, even when the
-    /// game disabled it (arenas disable their trigger once started), extended by a margin. Without a collider, the
-    /// position is considered inside.
-    /// </summary>
-    public static bool Contains(Component areaOwner, Vector2 position, float margin = 0f) {
-        var transform = areaOwner.transform;
-
-        var box = areaOwner.GetComponent<BoxCollider2D>();
-        if (box != null) {
-            var center = (Vector2) transform.TransformPoint(box.offset);
-            var scale = transform.lossyScale;
-            var half = new Vector2(Mathf.Abs(box.size.x * scale.x), Mathf.Abs(box.size.y * scale.y)) / 2f;
-            return Mathf.Abs(position.x - center.x) <= half.x + margin &&
-                   Mathf.Abs(position.y - center.y) <= half.y + margin;
-        }
-
-        var polygon = areaOwner.GetComponent<PolygonCollider2D>();
-        if (polygon != null && polygon.points.Length > 0) {
-            var min = new Vector2(float.MaxValue, float.MaxValue);
-            var max = new Vector2(float.MinValue, float.MinValue);
-            foreach (var point in polygon.points) {
-                var world = (Vector2) transform.TransformPoint(point + polygon.offset);
-                min = Vector2.Min(min, world);
-                max = Vector2.Max(max, world);
-            }
-
-            return position.x >= min.x - margin && position.x <= max.x + margin &&
-                   position.y >= min.y - margin && position.y <= max.y + margin;
-        }
-
-        var collider = areaOwner.GetComponent<Collider2D>();
-        if (collider != null && collider.enabled) {
-            var bounds = collider.bounds;
-            bounds.Expand(margin * 2f);
-            return bounds.Contains(new Vector3(position.x, position.y, bounds.center.z));
-        }
-
-        return true;
-    }
 
     #endregion
 
@@ -481,7 +448,7 @@ internal class ArenaWait {
         }
 
         var from = fsm.ActiveState;
-        if (isGlobal || from == null || !StartsBattleWithin(fsm, to, 3)) {
+        if (isGlobal || from == null) {
             return null;
         }
 
@@ -496,9 +463,11 @@ internal class ArenaWait {
             }
 
             var zone = zoneObject != null ? zoneObject.GetComponent<Collider2D>() : null;
-            if (zone != null) {
-                return GetZoneArena(zone);
+            if (zone == null) {
+                continue;
             }
+
+            return StartsBattleWithin(fsm, to, StartSearchDepth) ? GetZoneArena(zone) : null;
         }
 
         return null;
@@ -581,8 +550,7 @@ internal class ArenaWait {
 
         UpdateClosedGates(arena);
 
-        var battle = arena.Battle;
-        if (battle != null && IsUnderwayOrDone(battle)) {
+        if (arena.IsUnderwayOrDone) {
             // Started some other way (or by the scene host): a held boss must not stay asleep
             if (arena.Held.Count > 0) {
                 Release(arena);
@@ -635,7 +603,7 @@ internal class ArenaWait {
             var battle = arena.Battle;
             if (battle != null && (arena.Triggered || arena.StartDeferred)) {
                 if (!RunsArena(battle)) {
-                    // Scene client: the scene host starts the arena and BattleComponent follows it. The trigger stays
+                    // Scene client: the scene host starts the arena and EncounterComponent follows it. The trigger stays
                     // marked, so the arena starts here if this game becomes the scene host
                     return;
                 }
@@ -660,7 +628,7 @@ internal class ArenaWait {
     /// </summary>
     private void UpdateMessage(Arena arena, List<string> missing) {
         var hero = HeroController.instance;
-        var inside = hero != null && Contains(arena.AreaOwner, hero.transform.position);
+        var inside = hero != null && arena.Contains(hero.transform.position);
         var entered = inside && !arena.LocalInside;
         arena.LocalInside = inside;
 
@@ -756,7 +724,7 @@ internal class ArenaWait {
         _arenas.Clear();
         _transitionArenas.Clear();
         _releasing = false;
-        _entryPoint = null;
+        EncounterTracker.EntryPoint = null;
     }
 
     /// <summary>
@@ -772,7 +740,7 @@ internal class ArenaWait {
 
         _gateRoutine = null;
         Vector2 entry = HeroController.instance.transform.position;
-        _entryPoint = entry;
+        EncounterTracker.EntryPoint = entry;
 
         BattleScene[] battleScenes;
         try {
@@ -798,7 +766,7 @@ internal class ArenaWait {
     /// <item>only arenas whose completion is saved (<c>setPDBoolOnEnd</c> or a <see cref="PersistentBoolItem"/>),
     /// not completed and not started, with at least two gates;</item>
     /// <item>the entry gates are the gates closest to the entry point of the local hero in the scene (within
-    /// <see cref="EntryGateTolerance"/> of the closest one): they stay open;</item>
+    /// a few units of the closest one, <see cref="Encounter.ClassifyGates"/>): they stay open;</item>
     /// <item>the other gates quick-close (<c>BG QUICK CLOSE</c>, or <c>BG CLOSE</c> if the gate does not have it);
     /// the end of the battle opens all gates (<c>BG OPEN</c>, or <c>BG QUICK OPEN</c> when completed elsewhere);</item>
     /// <item>nothing is closed if the hero entered the scene inside the arena area.</item>
@@ -812,22 +780,17 @@ internal class ArenaWait {
 
         // Known from now on, for the message
         var arena = GetBattleArena(battleScene);
-        if (battleScene.gates == null) {
+        var encounter = EncounterTracker.ForBattle(battleScene);
+        if (battleScene.gates == null || !encounter.IsSaved || !CanStartHere(battleScene)) {
             return;
         }
 
-        var saved = !string.IsNullOrEmpty(battleScene.setPDBoolOnEnd) ||
-                    battleScene.GetComponent<PersistentBoolItem>() != null;
-        if (!saved || !CanStartHere(battleScene)) {
-            return;
-        }
-
-        if (Contains(battleScene, entry)) {
+        if (encounter.Contains(entry)) {
             Logger.Info($"[ArenaWait] Entered the scene inside arena '{battleScene.name}', not closing its gates");
             return;
         }
 
-        foreach (var (fsm, isEntry, distance, closest) in ClassifyGates(battleScene, entry)) {
+        foreach (var (fsm, isEntry, distance, closest) in encounter.ClassifyGates(entry)) {
             if (isEntry) {
                 Logger.Info($"[ArenaWait] Gate '{fsm.name}' of arena '{arena.Name}' is an entry gate, left open");
                 continue;
@@ -850,61 +813,8 @@ internal class ArenaWait {
     }
 
     /// <summary>
-    /// Sorts the gates of an arena into entry gates (closest to the entry point, within
-    /// <see cref="EntryGateTolerance"/> of the closest one) and progression gates (the others). An arena with fewer
-    /// than two gates has only entry gates.
-    /// </summary>
-    private static List<(PlayMakerFSM Fsm, bool IsEntry, float Distance, float Closest)> ClassifyGates(
-        BattleScene battleScene,
-        Vector2 entry
-    ) {
-        var gates = new List<(PlayMakerFSM Fsm, float Distance)>();
-        if (battleScene.gates != null) {
-            foreach (Transform child in battleScene.gates.transform) {
-                var fsm = child.GetComponent<PlayMakerFSM>();
-                if (fsm != null && child.gameObject.activeInHierarchy) {
-                    gates.Add((fsm, Vector2.Distance(entry, child.position)));
-                }
-            }
-        }
-
-        if (gates.Count == 0) {
-            return [];
-        }
-
-        var closest = gates.Min(g => g.Distance);
-        return gates
-            .Select(g => (g.Fsm, gates.Count < 2 || g.Distance <= closest + EntryGateTolerance, g.Distance, closest))
-            .ToList();
-    }
-
-    /// <summary>
-    /// For a player coming back to an arena in progress (DownedManager, part B): opens in this game the gates that
-    /// let the hero back in, but not the progression gates (those leading further than the side the hero entered the
-    /// scene from), so the respawn is not a way past the arena. Without a known entry point, or for an arena whose
-    /// completion is not saved, all gates open as before.
-    /// </summary>
-    public static void OpenGatesForReentry(BattleScene battleScene) {
-        var entry = _instance?._entryPoint;
-        var saved = !string.IsNullOrEmpty(battleScene.setPDBoolOnEnd) ||
-                    battleScene.GetComponent<PersistentBoolItem>() != null;
-        if (entry == null || !saved || Contains(battleScene, entry.Value)) {
-            battleScene.SendEventToChildren("BG OPEN");
-            return;
-        }
-
-        foreach (var (fsm, isEntry, _, _) in ClassifyGates(battleScene, entry.Value)) {
-            if (isEntry) {
-                fsm.SendEvent("BG OPEN");
-            } else {
-                Logger.Info($"[ArenaWait] Keeping progression gate '{fsm.name}' of '{battleScene.name}' closed on re-entry");
-            }
-        }
-    }
-
-    /// <summary>
-    /// Opens the gates closed by us if the arena was completed without opening them (e.g. ended on the scene host
-    /// while the local arena never started).
+    /// Opens the progression gates closed by us if the arena is over and the game did not open them (an arena whose
+    /// end does not open its gates, <c>openGatesOnEnd</c> off). The end itself is the encounter's.
     /// </summary>
     private void UpdateClosedGates(Arena arena) {
         var battle = arena.Battle;
@@ -912,7 +822,7 @@ internal class ArenaWait {
             return;
         }
 
-        var done = battle.completed || BattleComponent.IsEndedOnSceneHost(battle);
+        var done = battle.completed || arena.Encounter?.State == EncounterState.Ended;
         if (!done || battle.started) {
             arena.CompletedSince = -1f;
             return;

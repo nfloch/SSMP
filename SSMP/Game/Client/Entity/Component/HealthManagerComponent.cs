@@ -203,10 +203,12 @@ internal class HealthManagerComponent : EntityComponent {
     }
 
     /// <summary>
-    /// A battle (arena) counts its remaining enemies as the children of its waves. On a client, those are the
-    /// inactive host objects, while the copy that dies is a separate object at the scene root: the battle never
-    /// ends there and its gates stay closed. Takes the dead enemy's host object out of its wave and lets the battle
-    /// count again.
+    /// A battle (arena) counts its remaining enemies as the children of its waves. On a scene client, those are the
+    /// inactive host objects, while the copy that dies is a separate object at the scene root. Takes the dead
+    /// enemy's host object out of its wave and lets the battle count again, so the local waves stay in step with the
+    /// scene host's: a scene client that becomes scene host during the battle carries on from the right wave
+    /// (<see cref="EncounterComponent.InitializeHost"/>). The end of the battle on a scene client no longer comes from
+    /// this count: it follows the scene host's encounter state (docs/arenes.md), and a local end is held until then.
     /// </summary>
     private void ReleaseHostFromBattle() {
         var host = _healthManager.Host;

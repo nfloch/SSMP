@@ -9,6 +9,7 @@ using SSMP.Api.Server;
 using SSMP.Eventing;
 using SSMP.Fsm;
 using SSMP.Game.Client.Downed;
+using SSMP.Game.Client.Encounters;
 using SSMP.Game.Client.Entity;
 using SSMP.Game.Client.Save;
 using SSMP.Game.Command.Client;
@@ -356,6 +357,7 @@ internal class ClientManager : IClientManager {
         if (_fullSynchronisation) {
             _entityManager.RegisterHooks();
             _saveManager.RegisterHooks();
+            EncounterTracker.RegisterHooks();
             _arenaWait.RegisterHooks();
         }
 
@@ -385,6 +387,7 @@ internal class ClientManager : IClientManager {
         if (_fullSynchronisation) {
             _entityManager.DeregisterHooks();
             _saveManager.DeregisterHooks();
+            EncounterTracker.DeregisterHooks();
             _arenaWait.DeregisterHooks();
         }
 

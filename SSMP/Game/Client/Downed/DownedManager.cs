@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using GlobalEnums;
 using SSMP.Api.Client;
-using SSMP.Game.Client.Entity.Component;
+using SSMP.Game.Client.Encounters;
 using SSMP.Hooks;
 using SSMP.Networking.Client;
 using SSMP.Networking.Packet.Data;
@@ -14,10 +14,10 @@ using Logger = SSMP.Logging.Logger;
 namespace SSMP.Game.Client.Downed;
 
 /// <summary>
-/// Death during an arena battle, co-op rules of PRINCIPES.md ("Boss et arènes" 2, 3 and 8):
+/// Death during an encounter, co-op rules of PRINCIPES.md ("Boss et arènes" 2, 3 and 8):
 /// <list type="bullet">
-/// <item>When the local hero would die in an arena whose battle is in progress (on the scene host,
-/// <see cref="BattleComponent"/>) while another player is still alive inside the arena, the hero does not die: it is
+/// <item>When the local hero would die inside an encounter in progress (arena or boss fight, on the scene host: the
+/// shared notion <see cref="Encounter"/>) while another player is still alive inside it, the hero does not die: it is
 /// downed for <see cref="DownedSeconds"/> seconds, hidden and inactive (no input, no hurt box, ignored by enemies),
 /// with a grey screen, a countdown, and the camera on an alive teammate.</item>
 /// <item>Then it comes back healed next to the arena, in the same scene (the hazard respawn sequence of the game),
@@ -79,8 +79,9 @@ internal class DownedManager {
     /// <summary>The phase of the local hero.</summary>
     private Phase _phase;
 
-    /// <summary>The arena of the current downed or waiting phase.</summary>
-    private BattleScene? _battle;
+    /// <summary>The encounter of the current downed or waiting phase.</summary>
+    private Encounter? _battle;
+
 
     /// <summary>The unscaled time at which the downed phase ends.</summary>
     private float _downedEnd;
@@ -139,7 +140,7 @@ internal class DownedManager {
             return null;
         }
 
-        var battle = BattleComponent.FindInProgressAt(hero.transform.position);
+        var battle = EncounterTracker.FindInProgressAt(hero.transform.position);
         if (battle == null) {
             Logger.Info("[Downed] Death outside a battle in progress: vanilla death");
             SendState(PlayerDeathStateType.Dead);
@@ -147,13 +148,13 @@ internal class DownedManager {
         }
 
         if (nonLethal) {
-            Logger.Info($"[Downed] Non-lethal death in battle '{battle.name}': vanilla handling");
+            Logger.Info($"[Downed] Non-lethal death in battle '{battle.Name}': vanilla handling");
             return null;
         }
 
         var teammate = FindAliveTeammateInArena(battle, out var teammateName);
         if (teammate == null) {
-            Logger.Info($"[Downed] Death in battle '{battle.name}' with no teammate alive in the arena: real death");
+            Logger.Info($"[Downed] Death in battle '{battle.Name}' with no teammate alive in the arena: real death");
             SendState(PlayerDeathStateType.Dead);
             return null;
         }
@@ -173,7 +174,7 @@ internal class DownedManager {
     /// Makes the local hero downed: hidden, inactive, ignored by enemies, with the grey screen and the camera on a
     /// teammate. Mirrors what the game does at the start of a hazard death, without its respawn.
     /// </summary>
-    private void StartDowned(HeroController hero, BattleScene battle, GameObject teammate, string teammateName,
+    private void StartDowned(HeroController hero, Encounter battle, GameObject teammate, string teammateName,
         bool frostDeath) {
         _phase = Phase.Downed;
         _battle = battle;
@@ -181,7 +182,7 @@ internal class DownedManager {
         _nobodyAliveSince = -1f;
 
         Logger.Info(
-            $"[Downed] Local hero downed in battle '{battle.name}' ({(frostDeath ? "frost, " : "")}" +
+            $"[Downed] Local hero downed in battle '{battle.Name}' ({(frostDeath ? "frost, " : "")}" +
             $"teammate alive: {teammateName}), back in {DownedSeconds} s"
         );
 
@@ -255,7 +256,7 @@ internal class DownedManager {
             return;
         }
 
-        if (_battle == null || !BattleComponent.IsInProgress(_battle)) {
+        if (_battle == null || !_battle.IsInProgress) {
             Logger.Info("[Downed] The battle is no longer in progress, coming back now");
             Respawn(hero);
             return;
@@ -276,7 +277,7 @@ internal class DownedManager {
         var secondsLeft = _downedEnd - Time.unscaledTime;
         DownedOverlay.Get().SetSecondsLeft(secondsLeft);
         if (secondsLeft <= 0f) {
-            Logger.Info($"[Downed] {DownedSeconds} s are over, coming back next to battle '{_battle.name}'");
+            Logger.Info($"[Downed] {DownedSeconds} s are over, coming back next to battle '{_battle.Name}'");
             Respawn(hero);
         }
     }
@@ -286,7 +287,7 @@ internal class DownedManager {
     /// with nobody alive inside any more, real death.
     /// </summary>
     private void UpdateWaiting(HeroController hero) {
-        if (_battle == null || !BattleComponent.IsInProgress(_battle)) {
+        if (_battle == null || !_battle.IsInProgress) {
             Logger.Info("[Downed] The battle ended while waiting outside the arena");
             _phase = Phase.None;
             _battle = null;
@@ -297,9 +298,9 @@ internal class DownedManager {
             return;
         }
 
-        if (BattleComponent.IsInside(_battle, hero.transform.position)) {
-            Logger.Info($"[Downed] Back inside battle '{_battle.name}', closing its gates behind the hero");
-            _battle.LockInBattle();
+        if (_battle.Contains(hero.transform.position)) {
+            Logger.Info($"[Downed] Back inside battle '{_battle.Name}', closing its gates behind the hero");
+            _battle.LockLocally();
             _phase = Phase.None;
             _battle = null;
             return;
@@ -343,7 +344,7 @@ internal class DownedManager {
         }
 
         Vector2 position = hero.transform.position;
-        if (!BattleComponent.IsInsideAnyArena(position)) {
+        if (!EncounterTracker.IsInsideAny(position)) {
             _lastOutsidePosition = position;
         }
     }
@@ -362,19 +363,15 @@ internal class DownedManager {
         DownedOverlay.Get().Hide();
 
         var spot = ChooseRespawnSpot(hero, battle, out var source);
-        var facingRight = battle != null ? battle.transform.position.x > spot.x : hero.cState.facingRight;
+        var facingRight = battle != null ? battle.Center.x > spot.x : hero.cState.facingRight;
         hero.playerData.SetHazardRespawn(spot, facingRight);
         Logger.Info($"[Downed] Coming back at {spot} ({source}), healed to full health");
 
         hero.MaxHealth();
 
-        if (battle != null && BattleComponent.IsInProgress(battle)) {
-            Logger.Info($"[Downed] Opening the gates of battle '{battle.name}' in this game until the hero is back in");
-            if (battle.camLocks != null) {
-                battle.camLocks.SetActive(false);
-            }
-
-            ArenaWait.OpenGatesForReentry(battle);
+        if (battle != null && battle.IsInProgress) {
+            Logger.Info($"[Downed] Opening the gates of battle '{battle.Name}' in this game until the hero is back in");
+            battle.OpenForReentry();
         }
 
         MonoBehaviourUtil.Instance.StartCoroutine(RespawnRoutine(hero, battle));
@@ -383,7 +380,7 @@ internal class DownedManager {
     /// <summary>
     /// Fades out, then runs the game's hazard respawn at the chosen spot.
     /// </summary>
-    private IEnumerator RespawnRoutine(HeroController hero, BattleScene? battle) {
+    private IEnumerator RespawnRoutine(HeroController hero, Encounter? battle) {
         var gm = global::GameManager.instance;
         gm.screenFader_fsm.SendEventSafe("HAZARD FADE");
         yield return new WaitForSeconds(FadeOutSeconds);
@@ -400,7 +397,7 @@ internal class DownedManager {
         SetUsernameVisible(hero, true);
         SendState(PlayerDeathStateType.Alive);
 
-        if (battle != null && BattleComponent.IsInProgress(battle)) {
+        if (battle != null && battle.IsInProgress) {
             _phase = Phase.Waiting;
             _battle = battle;
         } else {
@@ -413,7 +410,7 @@ internal class DownedManager {
     /// Chooses where the hero comes back: a ground point outside the arena, from the hazard respawn point, the last
     /// position outside the arenas, or the respawn point of the gate the hero entered the scene from.
     /// </summary>
-    private Vector2 ChooseRespawnSpot(HeroController hero, BattleScene? battle, out string source) {
+    private Vector2 ChooseRespawnSpot(HeroController hero, Encounter? battle, out string source) {
         var candidates = new List<(Vector2, string)> {
             (hero.playerData.hazardRespawnLocation, "hazard respawn point")
         };
@@ -433,7 +430,7 @@ internal class DownedManager {
                 continue;
             }
 
-            if (battle == null || !BattleComponent.IsInside(battle, ground)) {
+            if (battle == null || !battle.Contains(ground)) {
                 source = name;
                 return ground;
             }
@@ -458,7 +455,7 @@ internal class DownedManager {
     /// </summary>
     private void RealDeath(HeroController hero, string reason) {
         Logger.Info(
-            $"[Downed] Nobody is left alive in battle '{(_battle != null ? _battle.name : "?")}' ({reason}): " +
+            $"[Downed] Nobody is left alive in battle '{(_battle != null ? _battle.Name : "?")}' ({reason}): " +
             "real death, the arena resets once the scene is empty"
         );
 
@@ -539,7 +536,7 @@ internal class DownedManager {
     /// <summary>
     /// Finds a remote player of the scene that is alive and inside the arena area.
     /// </summary>
-    private GameObject? FindAliveTeammateInArena(BattleScene battle, out string name) {
+    private GameObject? FindAliveTeammateInArena(Encounter battle, out string name) {
         foreach (var playerData in _playerData.Values) {
             var container = playerData.PlayerContainer;
             if (!playerData.IsInLocalScene || container == null || !container.activeInHierarchy) {
@@ -551,7 +548,7 @@ internal class DownedManager {
             }
 
             var playerObject = playerData.PlayerObject != null ? playerData.PlayerObject : container;
-            if (!BattleComponent.IsInside(battle, playerObject.transform.position)) {
+            if (!battle.Contains(playerObject.transform.position)) {
                 continue;
             }
 

@@ -177,6 +177,7 @@ internal class EntityProcessor {
                 _netClient,
                 id,
                 foundEntry.Type,
+                foundEntry.IsBoss,
                 gameObject,
                 types: componentTypes
             );
@@ -210,13 +211,12 @@ internal class EntityProcessor {
                 _netClient,
                 id,
                 foundEntry.Type,
+                foundEntry.IsBoss,
                 gameObject,
                 clientObject,
                 componentTypes
             );
         }
-
-        entity.IsBoss = foundEntry.IsBoss;
 
         _entities[id] = entity;
 

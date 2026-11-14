@@ -121,5 +121,5 @@ internal enum EntityComponentType : ushort {
     HazardRespawn,
     Health,
     Layer,
-    Battle
+    Encounter
 }

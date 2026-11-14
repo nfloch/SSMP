@@ -199,8 +199,6 @@ internal partial class GamePatcher {
         AddHook(typeof(BouncePod), nameof(BouncePod.Hit), IgnoreRemoteHit<BouncePod>);
         AddHook(typeof(BounceBalloon), nameof(BounceBalloon.Hit), IgnoreRemoteHit<BounceBalloon>);
         AddHook(typeof(Breakable), nameof(Breakable.Hit), BreakableOnHitDiagnostic);
-        AddHook(typeof(BattleScene), nameof(BattleScene.StartBattle), BattleSceneOnStartBattleDiagnostic);
-        AddHook(typeof(BattleScene), nameof(BattleScene.DoEndBattle), BattleSceneOnDoEndBattleDiagnostic);
         AddHook(typeof(CameraManagerReference), nameof(CameraManagerReference.DoShake), CameraManagerReferenceOnDoShake);
         AddHook(
             typeof(CameraManagerReference),

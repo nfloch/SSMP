@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using GlobalEnums;
+using SSMP.Game.Client.Encounters;
 using SSMP.Collection;
 using SSMP.Game.Client.Entity;
 using SSMP.Networking.Client;
@@ -374,9 +375,10 @@ internal class SaveManager {
                 setCurrentBoolAction = value => breakable.isBroken = value;
             }
 
-            // The battle scene only reads its persistent bool when the scene loads. When the scene host finishes the
-            // battle while we are in the arena, setting the value alone leaves the gates closed and the camera
-            // locked, so run the end of the battle locally as well.
+            // The battle scene only reads its persistent bool when the scene loads. When the arena is completed in the
+            // shared save while we are in the scene, setting the value alone leaves the gates closed and the camera
+            // locked: end the arena locally, in the single way of the encounter (also used for the scene host's end
+            // of a synced arena). Still needed for arenas without synced entities, which carry no encounter state.
             var battleScene = itemObject.GetComponent<BattleScene>();
             if (battleScene) {
                 getCurrentBoolFunc = () => battleScene.completed;
@@ -386,13 +388,7 @@ internal class SaveManager {
                     }
 
                     Logger.Info($"Battle scene '{itemObject.name}' completed by scene host, ending it locally");
-                    if (battleScene.isActiveAndEnabled) {
-                        battleScene.DoEndBattle();
-                    } else {
-                        // Coroutines cannot start on an inactive object: apply the "already completed" state instead
-                        battleScene.completed = true;
-                        battleScene.BattleCompleted();
-                    }
+                    EncounterTracker.ForBattle(battleScene).EndLocally("completed in the shared save");
                 };
             }
 
