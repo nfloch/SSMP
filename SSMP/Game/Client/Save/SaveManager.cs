@@ -60,6 +60,11 @@ internal class SaveManager {
     private readonly SaveChanges _saveChanges;
 
     /// <summary>
+    /// Shows the ability tutorial when another player acquires a shared ability during the session.
+    /// </summary>
+    private readonly AbilityTutorials _abilityTutorials;
+
+    /// <summary>
     /// List of data classes for each FSM that has a persistent int/bool or geo rock attached to it.
     /// </summary>
     private readonly List<PersistentFsmData> _persistentFsmData;
@@ -127,6 +132,7 @@ internal class SaveManager {
         _netClient = netClient;
         _entityManager = entityManager;
         _saveChanges = new SaveChanges();
+        _abilityTutorials = new AbilityTutorials();
 
         _persistentFsmData = [];
         _listHashes = new Dictionary<string?, int>();
@@ -177,6 +183,8 @@ internal class SaveManager {
 
         MonoBehaviourUtil.Instance.OnUpdateEvent += OnUpdatePlayerDataChecks;
         MonoBehaviourUtil.Instance.OnUpdateEvent += OnUpdatePersistents;
+
+        _abilityTutorials.RegisterHooks();
     }
 
     /// <summary>
@@ -187,6 +195,8 @@ internal class SaveManager {
 
         MonoBehaviourUtil.Instance.OnUpdateEvent -= OnUpdatePlayerDataChecks;
         MonoBehaviourUtil.Instance.OnUpdateEvent -= OnUpdatePersistents;
+
+        _abilityTutorials.DeregisterHooks();
     }
 
     /// <summary>
@@ -767,7 +777,7 @@ internal class SaveManager {
         var index = saveUpdate.SaveDataIndex;
         var value = saveUpdate.Value;
 
-        UpdateSaveWithData(index, value);
+        UpdateSaveWithData(index, value, true);
     }
 
     /// <summary>
@@ -798,7 +808,7 @@ internal class SaveManager {
         foreach (var (index, value) in currentSave.SaveData) {
             // A single invalid value should not stop the player from entering the game
             try {
-                UpdateSaveWithData(index, value);
+                UpdateSaveWithData(index, value, false);
             } catch (Exception e) {
                 Logger.Warn($"Could not apply save data with index {index}, skipping:\n{e}");
             }
@@ -825,9 +835,11 @@ internal class SaveManager {
     /// </summary>
     /// <param name="index">The index of the save data.</param>
     /// <param name="encodedValue">A byte array containing the encoded value of the save data.</param>
+    /// <param name="live">Whether this is a change made by another player during the session, rather than the save
+    /// data applied when joining the server.</param>
     /// <exception cref="NotImplementedException">Thrown when the type belonging to the save data cannot be decoded
     /// due to a missing implementation.</exception>
-    private void UpdateSaveWithData(ushort index, byte[] encodedValue) {
+    private void UpdateSaveWithData(ushort index, byte[] encodedValue, bool live) {
         var pd = PlayerData.instance;
         var sceneData = SceneData.instance;
 
@@ -847,10 +859,16 @@ internal class SaveManager {
             var decodedObject = DecodeSaveDataValue(name, encodedValue);
 
             switch (decodedObject) {
-                case bool decodedBool:
+                case bool decodedBool: {
+                    var wasTrue = pd.GetBool(name);
                     _lastPlayerData?.SetBool(name, decodedBool);
                     pd.SetBool(name, decodedBool);
+                    if (live && decodedBool && !wasTrue) {
+                        _abilityTutorials.OnRemoteBoolAcquired(name);
+                    }
+
                     break;
+                }
                 case float decodedFloat:
                     _lastPlayerData?.SetFloat(name, decodedFloat);
                     pd.SetFloat(name, decodedFloat);
