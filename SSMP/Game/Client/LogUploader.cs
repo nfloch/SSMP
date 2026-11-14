@@ -190,7 +190,7 @@ internal class LogUploader {
                 Logger.Info($"[Session] Log sent: {Path.GetFileName(file)}");
             }
         } catch (Exception e) {
-            Logger.Warn($"[Session] Could not send the logs, will retry at the next disconnect or game start: {e.Message}");
+            Logger.Warn($"[Session] Could not send the logs, will retry at the next disconnect or game start: {e}");
         } finally {
             UploadLock.Release();
         }
@@ -248,7 +248,9 @@ internal class LogUploader {
             request.Headers.TryAddWithoutValidation(headerName, value);
         }
 
-        request.Content = content;
+        // Unity's Mono fails a POST without content (its handler then throws a NullReferenceException on the missing
+        // response), so the requests without a body send an empty one
+        request.Content = content ?? new ByteArrayContent([]);
 
         using var response = await client.SendAsync(request);
         var body = await response.Content.ReadAsStringAsync();
