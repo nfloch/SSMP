@@ -367,11 +367,15 @@ internal class ClientUpdateManager : UpdateManager<ServerUpdatePacket, ServerUpd
     }
 
     /// <summary>
-    /// Set that the player has died in the current packet.
+    /// Set the death state of the local player (alive, downed during a battle, really dead) in the current packet.
     /// </summary>
-    public void SetDeath() {
+    /// <param name="state">The new death state.</param>
+    public void SetDeathState(PlayerDeathStateType state) {
         lock (Lock) {
-            CurrentUpdatePacket.SetSendingPacketData(ServerUpdatePacketId.PlayerDeath, new ReliableEmptyData());
+            CurrentUpdatePacket.SetSendingPacketData(
+                ServerUpdatePacketId.PlayerDeath,
+                new ServerPlayerDeathState { State = state }
+            );
         }
     }
 

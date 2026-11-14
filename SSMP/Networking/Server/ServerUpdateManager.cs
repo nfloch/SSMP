@@ -466,12 +466,13 @@ internal class ServerUpdateManager : UpdateManager<ClientUpdatePacket, ClientUpd
     }
 
     /// <summary>
-    /// Add player death data to the current packet.
+    /// Add the death state of another player (alive, downed during a battle, really dead) to the current packet.
     /// </summary>
     /// <param name="id">The ID of the player.</param>
-    public void AddPlayerDeathData(ushort id) {
+    /// <param name="state">The new death state.</param>
+    public void AddPlayerDeathStateData(ushort id, PlayerDeathStateType state) {
         lock (Lock) {
-            FindOrCreatePacketData<GenericClientData>(id, ClientUpdatePacketId.PlayerDeath);
+            FindOrCreatePacketData<ClientPlayerDeathState>(id, ClientUpdatePacketId.PlayerDeath).State = state;
         }
     }
 

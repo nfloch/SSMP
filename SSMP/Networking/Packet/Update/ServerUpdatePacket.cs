@@ -27,6 +27,8 @@ internal class ServerUpdatePacket : UpdatePacket<ServerUpdatePacketId> {
                 return new ServerPlayerEnterScene();
             case ServerUpdatePacketId.PlayerLeaveScene:
                 return new ServerPlayerLeaveScene();
+            case ServerUpdatePacketId.PlayerDeath:
+                return new ServerPlayerDeathState();
             case ServerUpdatePacketId.ChatMessage:
                 return new ChatMessage();
             case ServerUpdatePacketId.SaveUpdate:

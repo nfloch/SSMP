@@ -353,9 +353,9 @@ internal abstract class ServerManager : IServerManager {
             ServerUpdatePacketId.PlayerDisconnect,
             OnPlayerDisconnect
         );
-        _packetManager.RegisterServerUpdatePacketHandler(
+        _packetManager.RegisterServerUpdatePacketHandler<ServerPlayerDeathState>(
             ServerUpdatePacketId.PlayerDeath,
-            OnPlayerDeath
+            OnPlayerDeathState
         );
         _packetManager.RegisterServerUpdatePacketHandler<ChatMessage>(
             ServerUpdatePacketId.ChatMessage,
@@ -657,40 +657,16 @@ internal abstract class ServerManager : IServerManager {
                 reliableEntityUpdateList.Add(reliableEntityUpdate);
             }
 
-            var isReturningPreviousHost = playerData.LastHostedScene == playerData.CurrentScene;
-            var shouldDemoteCurrentHost = alreadyPlayersInScene && isReturningPreviousHost;
-            makeEnteringPlayerHost = !alreadyPlayersInScene || isReturningPreviousHost;
-
-            if (shouldDemoteCurrentHost) {
-                var epoch = GetNextSceneHostEpoch(playerData.CurrentScene);
-                foreach (var (key, otherPlayerData) in _playerData) {
-                    if (key == playerData.Id) continue;
-                    if (otherPlayerData.CurrentScene != playerData.CurrentScene) continue;
-
-                    if (otherPlayerData.IsSceneHost) {
-                        otherPlayerData.IsSceneHost = false;
-
-                        NetServer
-                            .GetUpdateManagerForClient(key)
-                            ?.SetSceneHostTransfer(playerData.CurrentScene, epoch, demote: true);
-
-                        Logger.Info(
-                            $"Demoted player {key} ({otherPlayerData.Username}) in scene {playerData.CurrentScene} since the previous host {playerData.Id} ({playerData.Username}) re-entered (epoch {epoch})"
-                        );
-                    } else {
-                        NetServer
-                            .GetUpdateManagerForClient(key)
-                            ?.SetSceneHostTransfer(playerData.CurrentScene, epoch, demote: true);
-                    }
-                }
-            }
+            // The first player in the scene is its host. A player returning after a death no longer takes the scene
+            // host back: a death during a battle keeps the player in the scene (downed), and the players who stayed
+            // keep simulating it
+            makeEnteringPlayerHost = !alreadyPlayersInScene;
 
             if (makeEnteringPlayerHost) {
                 Logger.Debug($"Making {playerData.Id} the scene host");
                 playerData.IsSceneHost = true;
             }
 
-            playerData.LastHostedScene = null;
             sceneHostEpoch = _sceneHostEpochs.GetOrAdd(playerData.CurrentScene, 0u);
         }
 
@@ -1273,18 +1249,25 @@ internal abstract class ServerManager : IServerManager {
     }
 
     /// <summary>
-    /// Callback method for when a player dies. 
+    /// Callback method for when a player's death state changes: downed during a battle, back alive, or really dead.
+    /// Relayed to the players in the same scene. No scene host transfer here: a downed scene host stays in the scene
+    /// and keeps simulating the battle, and a real death is followed by a scene change, which transfers the scene
+    /// host.
     /// </summary>
     /// <param name="id">The ID of the player.</param>
-    private void OnPlayerDeath(ushort id) {
+    /// <param name="data">The new death state.</param>
+    private void OnPlayerDeathState(ushort id, ServerPlayerDeathState data) {
         if (!_playerData.TryGetValue(id, out var playerData)) {
             Logger.Warn($"Received PlayerDeath data, but player with ID {id} is not in mapping");
             return;
         }
 
-        Logger.Info($"Received PlayerDeath data from ({id}, {playerData.Username})");
+        Logger.Info(
+            $"[Downed] Received death state {data.State} from ({id}, {playerData.Username}) in " +
+            $"'{playerData.CurrentScene}', relaying it to the scene"
+        );
 
-        if (ServerSaveData.IsSteelSoul()) {
+        if (data.State == PlayerDeathStateType.Dead && ServerSaveData.IsSteelSoul()) {
             // We are running a Steel Soul save file, so we wipe the player-specific data for the player
             ServerSaveData.PlayerSaveData.Remove(playerData.AuthKey);
             ServerSaveData.PersonalInventory.Remove(playerData.AuthKey);
@@ -1292,38 +1275,10 @@ internal abstract class ServerManager : IServerManager {
             Logger.Info("  Wiped player save data (Steel Soul)");
         }
 
-        if (FullSynchronisation && playerData.IsSceneHost) {
-            var sceneName = playerData.CurrentScene;
-            var scenePlayers = new List<KeyValuePair<ushort, ServerPlayerData>>();
-            foreach (var pair in _playerData) {
-                if (pair.Key != id && pair.Value.CurrentScene == sceneName) {
-                    scenePlayers.Add(pair);
-                }
-            }
-
-            if (scenePlayers.Count > 0) {
-                var epoch = GetNextSceneHostEpoch(sceneName);
-                var newHostPair = scenePlayers[0];
-                newHostPair.Value.IsSceneHost = true;
-                playerData.IsSceneHost = false;
-                playerData.LastHostedScene = sceneName;
-
-                Logger.Info(
-                    $"Player {id} ({playerData.Username}) died. Host transferred to {newHostPair.Key} ({newHostPair.Value.Username}) in scene {sceneName} (epoch {epoch})"
-                );
-
-                foreach (var pair in scenePlayers) {
-                    var updateManager = NetServer.GetUpdateManagerForClient(pair.Key);
-                    var isNewHost = (pair.Key == newHostPair.Key);
-                    updateManager?.SetSceneHostTransfer(sceneName, epoch, demote: !isNewHost);
-                }
-            }
-        }
-
         SendDataInSameScene(
             id,
             playerData.CurrentScene,
-            otherId => { NetServer.GetUpdateManagerForClient(otherId)?.AddPlayerDeathData(id); }
+            otherId => { NetServer.GetUpdateManagerForClient(otherId)?.AddPlayerDeathStateData(id, data.State); }
         );
     }
 

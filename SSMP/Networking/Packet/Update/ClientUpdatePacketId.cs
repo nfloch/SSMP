@@ -75,7 +75,7 @@ internal enum ClientUpdatePacketId {
     SceneHostTransfer = 13,
 
     /// <summary>
-    /// Notify that a player has died.
+    /// Notify a change of another player's death state during a battle (alive, downed, really dead).
     /// </summary>
     PlayerDeath = 14,
 
