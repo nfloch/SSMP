@@ -136,8 +136,38 @@ internal static class EntityInitializer {
                     behaviour.enabled = false;
                 }
 
+                if (component is Crawler crawler) {
+                    DetachCrawlerFromHealthManager(crawler);
+                }
+
                 UnityEngine.Object.Destroy(component);
             }
+        }
+    }
+
+    /// <summary>
+    /// Reflected private field of <see cref="Crawler"/> telling whether it starts in its ambient idle.
+    /// </summary>
+    private static readonly System.Reflection.FieldInfo? CrawlerAmbientIdleField = typeof(Crawler).GetField(
+        "ambientIdle",
+        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic
+    );
+
+    /// <summary>
+    /// Stops a client-side <see cref="Crawler"/> that is about to be destroyed from reacting to hits.
+    /// In <c>Awake</c>, an ambient-idle crawler (MossBone Crawler) subscribes <see cref="Crawler.EndAmbientIdle"/>
+    /// to <see cref="HealthManager.TookDamage"/>. Once the crawler is destroyed, that subscription stays and every
+    /// non-fatal hit on the client copy throws an <see cref="ArgumentNullException"/> from
+    /// <c>StartCoroutine</c>, aborting <c>HealthManager.TakeDamage</c> before the hit flash and stun.
+    /// </summary>
+    /// <param name="crawler">The crawler component that will be destroyed.</param>
+    private static void DetachCrawlerFromHealthManager(Crawler crawler) {
+        // Destroy is deferred to the end of the frame: if Awake has not run yet, it must not subscribe either
+        CrawlerAmbientIdleField?.SetValue(crawler, false);
+
+        var healthManager = crawler.GetComponent<HealthManager>();
+        if (healthManager != null) {
+            healthManager.TookDamage -= crawler.EndAmbientIdle;
         }
     }
 
