@@ -374,7 +374,7 @@ internal class DownedManager {
                 battle.camLocks.SetActive(false);
             }
 
-            battle.SendEventToChildren("BG OPEN");
+            ArenaWait.OpenGatesForReentry(battle);
         }
 
         MonoBehaviourUtil.Instance.StartCoroutine(RespawnRoutine(hero, battle));

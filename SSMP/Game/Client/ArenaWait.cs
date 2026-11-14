@@ -92,6 +92,9 @@ internal class ArenaWait {
     /// <summary>The coroutine that evaluates the progression gates after entering a scene.</summary>
     private Coroutine? _gateRoutine;
 
+    /// <summary>Where the local hero entered the current scene, once placed.</summary>
+    private Vector2? _entryPoint;
+
     public ArenaWait(NetClient netClient, EntityManager entityManager, Dictionary<ushort, ClientPlayerData> playerData) {
         _netClient = netClient;
         _entityManager = entityManager;
@@ -753,6 +756,7 @@ internal class ArenaWait {
         _arenas.Clear();
         _transitionArenas.Clear();
         _releasing = false;
+        _entryPoint = null;
     }
 
     /// <summary>
@@ -768,6 +772,7 @@ internal class ArenaWait {
 
         _gateRoutine = null;
         Vector2 entry = HeroController.instance.transform.position;
+        _entryPoint = entry;
 
         BattleScene[] battleScenes;
         try {
@@ -817,26 +822,13 @@ internal class ArenaWait {
             return;
         }
 
-        var gates = new List<(PlayMakerFSM Fsm, float Distance)>();
-        foreach (Transform child in battleScene.gates.transform) {
-            var fsm = child.GetComponent<PlayMakerFSM>();
-            if (fsm != null && child.gameObject.activeInHierarchy) {
-                gates.Add((fsm, Vector2.Distance(entry, child.position)));
-            }
-        }
-
-        if (gates.Count < 2) {
-            return;
-        }
-
         if (Contains(battleScene, entry)) {
             Logger.Info($"[ArenaWait] Entered the scene inside arena '{battleScene.name}', not closing its gates");
             return;
         }
 
-        var closest = gates.Min(g => g.Distance);
-        foreach (var (fsm, distance) in gates) {
-            if (distance <= closest + EntryGateTolerance) {
+        foreach (var (fsm, isEntry, distance, closest) in ClassifyGates(battleScene, entry)) {
+            if (isEntry) {
                 Logger.Info($"[ArenaWait] Gate '{fsm.name}' of arena '{arena.Name}' is an entry gate, left open");
                 continue;
             }
@@ -854,6 +846,59 @@ internal class ArenaWait {
             );
             fsm.SendEvent(closeEvent);
             arena.ClosedGates.Add(fsm);
+        }
+    }
+
+    /// <summary>
+    /// Sorts the gates of an arena into entry gates (closest to the entry point, within
+    /// <see cref="EntryGateTolerance"/> of the closest one) and progression gates (the others). An arena with fewer
+    /// than two gates has only entry gates.
+    /// </summary>
+    private static List<(PlayMakerFSM Fsm, bool IsEntry, float Distance, float Closest)> ClassifyGates(
+        BattleScene battleScene,
+        Vector2 entry
+    ) {
+        var gates = new List<(PlayMakerFSM Fsm, float Distance)>();
+        if (battleScene.gates != null) {
+            foreach (Transform child in battleScene.gates.transform) {
+                var fsm = child.GetComponent<PlayMakerFSM>();
+                if (fsm != null && child.gameObject.activeInHierarchy) {
+                    gates.Add((fsm, Vector2.Distance(entry, child.position)));
+                }
+            }
+        }
+
+        if (gates.Count == 0) {
+            return [];
+        }
+
+        var closest = gates.Min(g => g.Distance);
+        return gates
+            .Select(g => (g.Fsm, gates.Count < 2 || g.Distance <= closest + EntryGateTolerance, g.Distance, closest))
+            .ToList();
+    }
+
+    /// <summary>
+    /// For a player coming back to an arena in progress (DownedManager, part B): opens in this game the gates that
+    /// let the hero back in, but not the progression gates (those leading further than the side the hero entered the
+    /// scene from), so the respawn is not a way past the arena. Without a known entry point, or for an arena whose
+    /// completion is not saved, all gates open as before.
+    /// </summary>
+    public static void OpenGatesForReentry(BattleScene battleScene) {
+        var entry = _instance?._entryPoint;
+        var saved = !string.IsNullOrEmpty(battleScene.setPDBoolOnEnd) ||
+                    battleScene.GetComponent<PersistentBoolItem>() != null;
+        if (entry == null || !saved || Contains(battleScene, entry.Value)) {
+            battleScene.SendEventToChildren("BG OPEN");
+            return;
+        }
+
+        foreach (var (fsm, isEntry, _, _) in ClassifyGates(battleScene, entry.Value)) {
+            if (isEntry) {
+                fsm.SendEvent("BG OPEN");
+            } else {
+                Logger.Info($"[ArenaWait] Keeping progression gate '{fsm.name}' of '{battleScene.name}' closed on re-entry");
+            }
         }
     }
 
