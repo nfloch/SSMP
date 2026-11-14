@@ -140,7 +140,7 @@ internal partial class GamePatcher {
 
         var owner = GetEnemyTargetOwner(requester);
         return owner != null && EnemyApprovedTargets.TryGetValue(owner.GetInstanceID(), out var target) &&
-               target != null && target.activeInHierarchy
+               target != null && target.activeInHierarchy && !PlayerTargetRegistry.IsUntargetable(target)
             ? target
             : null;
     }

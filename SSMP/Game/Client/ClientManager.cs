@@ -8,6 +8,7 @@ using SSMP.Api.Client;
 using SSMP.Api.Server;
 using SSMP.Eventing;
 using SSMP.Fsm;
+using SSMP.Game.Client.Downed;
 using SSMP.Game.Client.Entity;
 using SSMP.Game.Client.Save;
 using SSMP.Game.Command.Client;
@@ -105,6 +106,11 @@ internal class ClientManager : IClientManager {
     /// The save manager instance.
     /// </summary>
     private readonly SaveManager _saveManager;
+
+    /// <summary>
+    /// The manager of the co-op death rules during battles (downed players).
+    /// </summary>
+    private readonly DownedManager _downedManager;
 
     /// <summary>
     /// The pause manager instance.
@@ -253,6 +259,7 @@ internal class ClientManager : IClientManager {
         _bugReport = new BugReport(netClient, _entityManager);
 
         _saveManager = new SaveManager(netClient, _entityManager);
+        _downedManager = new DownedManager(netClient, _playerData);
 
         _pauseManager = new PauseManager(netClient);
         _gamePatcher = new GamePatcher(netClient, _entityManager);
@@ -285,6 +292,11 @@ internal class ClientManager : IClientManager {
 
         _entityManager.Initialize();
         _saveManager.Initialize();
+        _downedManager.Initialize();
+        PlayerEnterSceneEvent += _downedManager.OnPlayerEnterScene;
+        PlayerLeaveSceneEvent += _downedManager.OnPlayerLeaveScene;
+        PlayerDisconnectEvent += _downedManager.OnPlayerLeaveScene;
+        _netClient.DisconnectEvent += _downedManager.OnLocalDisconnect;
 
         // The other players plus the local player
         BossHealth.Initialize(() => _serverSettings.BossHealthMultiplier, () => _playerData.Count + 1);
@@ -466,6 +478,10 @@ internal class ClientManager : IClientManager {
                 ClientUpdatePacketId.InventoryItemUpdate,
                 OnInventoryItemUpdate
             );
+            _packetManager.RegisterClientUpdatePacketHandler<ClientPlayerDeathState>(
+                ClientUpdatePacketId.PlayerDeath,
+                _downedManager.OnPlayerDeathState
+            );
         }
     }
 
@@ -492,6 +508,7 @@ internal class ClientManager : IClientManager {
             _packetManager.DeregisterClientUpdatePacketHandler(ClientUpdatePacketId.SceneHostTransfer);
             _packetManager.DeregisterClientUpdatePacketHandler(ClientUpdatePacketId.SaveUpdate);
             _packetManager.DeregisterClientUpdatePacketHandler(ClientUpdatePacketId.InventoryItemUpdate);
+            _packetManager.DeregisterClientUpdatePacketHandler(ClientUpdatePacketId.PlayerDeath);
         }
     }
 

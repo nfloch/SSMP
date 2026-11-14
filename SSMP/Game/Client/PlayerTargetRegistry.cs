@@ -8,6 +8,12 @@ namespace SSMP.Game.Client;
 /// </summary>
 internal static class PlayerTargetRegistry {
     private static readonly HashSet<GameObject> RemotePlayerObjects = [];
+
+    /// <summary>
+    /// Players that enemies must ignore: downed during a battle (local hero or remote player objects, see
+    /// <c>DownedManager</c>).
+    /// </summary>
+    private static readonly HashSet<GameObject> UntargetablePlayers = [];
     private static readonly List<GameObject> TrackedPlayersCache = [];
 
     /// <summary>
@@ -40,6 +46,28 @@ internal static class PlayerTargetRegistry {
     /// <summary>
     /// Clears all tracked remote players.
     /// </summary>
+    /// <summary>
+    /// Sets whether enemies must ignore the given player object (downed during a battle).
+    /// </summary>
+    public static void SetUntargetable(GameObject? playerObject, bool untargetable) {
+        if (playerObject == null) {
+            return;
+        }
+
+        if (untargetable) {
+            UntargetablePlayers.Add(playerObject);
+        } else {
+            UntargetablePlayers.Remove(playerObject);
+        }
+    }
+
+    /// <summary>
+    /// Whether enemies must ignore the given player object (downed during a battle).
+    /// </summary>
+    public static bool IsUntargetable(GameObject? playerObject) {
+        return playerObject != null && UntargetablePlayers.Contains(playerObject);
+    }
+
     public static void ClearRemotePlayers() {
         RemotePlayerObjects.Clear();
         PlayerCollidersCache.Clear();
@@ -133,12 +161,12 @@ internal static class PlayerTargetRegistry {
     /// <returns>A pre-allocated list containing the local hero root and active registered remote player roots.</returns>
     public static List<GameObject> GetTrackedPlayers() {
         TrackedPlayersCache.Clear();
-        if (HeroController.instance != null) {
+        if (HeroController.instance != null && !UntargetablePlayers.Contains(HeroController.instance.gameObject)) {
             TrackedPlayersCache.Add(HeroController.instance.gameObject);
         }
 
         foreach (var playerObject in RemotePlayerObjects) {
-            if (playerObject != null && playerObject.activeInHierarchy) {
+            if (playerObject != null && playerObject.activeInHierarchy && !UntargetablePlayers.Contains(playerObject)) {
                 TrackedPlayersCache.Add(playerObject);
             }
         }

@@ -371,7 +371,7 @@ internal partial class GamePatcher {
     /// overlaps the alert range collider; otherwise <see langword="false"/>.
     /// </returns>
     private static bool IsPlayerInsideAlertRange(AlertRange alertRange, GameObject player) {
-        if (player == null || !player.activeInHierarchy) {
+        if (player == null || !player.activeInHierarchy || PlayerTargetRegistry.IsUntargetable(player)) {
             return false;
         }
 

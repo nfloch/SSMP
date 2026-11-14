@@ -260,27 +260,29 @@ internal class BattleComponent : EntityComponent {
     }
 
     /// <summary>
-    /// Whether the local hero is inside the area of the arena: its trigger collider, even when the game disabled it
-    /// (bosses that start the arena themselves). Without a collider, the hero is considered inside.
+    /// Whether the local hero is inside the area of the arena (see <see cref="IsInside"/>).
     /// </summary>
     private bool IsHeroInside() {
         var hero = HeroController.instance;
-        if (hero == null) {
-            return false;
-        }
+        return hero != null && IsInside(_battleScene, hero.transform.position);
+    }
 
-        Vector2 heroPos = hero.transform.position;
-        var transform = _battleScene.transform;
+    /// <summary>
+    /// Whether the given position is inside the area of the arena: its trigger collider, even when the game disabled
+    /// it (bosses that start the arena themselves). Without a collider, any position is considered inside.
+    /// </summary>
+    public static bool IsInside(BattleScene battleScene, Vector2 position) {
+        var transform = battleScene.transform;
 
-        var box = _battleScene.GetComponent<BoxCollider2D>();
+        var box = battleScene.GetComponent<BoxCollider2D>();
         if (box != null) {
             var center = (Vector2) transform.TransformPoint(box.offset);
             var scale = transform.lossyScale;
             var half = new Vector2(Mathf.Abs(box.size.x * scale.x), Mathf.Abs(box.size.y * scale.y)) / 2f;
-            return Mathf.Abs(heroPos.x - center.x) <= half.x && Mathf.Abs(heroPos.y - center.y) <= half.y;
+            return Mathf.Abs(position.x - center.x) <= half.x && Mathf.Abs(position.y - center.y) <= half.y;
         }
 
-        var polygon = _battleScene.GetComponent<PolygonCollider2D>();
+        var polygon = battleScene.GetComponent<PolygonCollider2D>();
         if (polygon != null && polygon.points.Length > 0) {
             var min = new Vector2(float.MaxValue, float.MaxValue);
             var max = new Vector2(float.MinValue, float.MinValue);
@@ -290,10 +292,47 @@ internal class BattleComponent : EntityComponent {
                 max = Vector2.Max(max, world);
             }
 
-            return heroPos.x >= min.x && heroPos.x <= max.x && heroPos.y >= min.y && heroPos.y <= max.y;
+            return position.x >= min.x && position.x <= max.x && position.y >= min.y && position.y <= max.y;
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Whether the battle of the given arena is in progress on the scene host (state seen by every game of the scene:
+    /// sent by the scene host, received by the clients). False for an arena without synced entities.
+    /// </summary>
+    public static bool IsInProgress(BattleScene? battleScene) {
+        return battleScene != null && Owners.TryGetValue(battleScene, out var owner) && owner != null &&
+               owner._state == StateStarted;
+    }
+
+    /// <summary>
+    /// Finds an arena whose battle is in progress on the scene host and whose area holds the given position.
+    /// </summary>
+    public static BattleScene? FindInProgressAt(Vector2 position) {
+        foreach (var pair in Owners) {
+            if (pair.Key != null && pair.Value != null && pair.Value._state == StateStarted &&
+                IsInside(pair.Key, position)) {
+                return pair.Key;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Whether the given position is inside the area of any arena with synced entities of the scene, in progress or
+    /// not.
+    /// </summary>
+    public static bool IsInsideAnyArena(Vector2 position) {
+        foreach (var pair in Owners) {
+            if (pair.Key != null && pair.Value != null && IsInside(pair.Key, position)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <inheritdoc />

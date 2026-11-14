@@ -216,6 +216,13 @@ public static class EventHooks {
     public static event Action<bool, bool>? HeroControllerDie;
 
     /// <summary>
+    /// Called before HeroController.Die: when it returns a routine, the hero does not die and that routine runs in
+    /// place of the death (co-op "downed" state during a battle, see <c>DownedManager</c>). The
+    /// <see cref="HeroControllerDie"/> event is not invoked then. Parameters: the hero, nonLethal, frostDeath.
+    /// </summary>
+    public static Func<HeroController, bool, bool, IEnumerator?>? HeroControllerDieOverride;
+
+    /// <summary>
     /// Event that is called when HeroController.UseLavaBell is called.
     /// </summary>
     public static event Action? UseLavaBell;
@@ -566,6 +573,17 @@ public static class EventHooks {
         bool nonLethal,
         bool frostDeath
     ) {
+        IEnumerator? replacement = null;
+        try {
+            replacement = HeroControllerDieOverride?.Invoke(self, nonLethal, frostDeath);
+        } catch (Exception e) {
+            Logger.Error($"Exception thrown while checking the HeroController.Die override:\n{e}");
+        }
+
+        if (replacement != null) {
+            return replacement;
+        }
+
         HeroControllerDie?.Invoke(nonLethal, frostDeath);
 
         return orig(self, nonLethal, frostDeath);
