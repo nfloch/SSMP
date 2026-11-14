@@ -27,6 +27,10 @@ Paths (run from the SSMP repo root, `world-sync` branch):
 - Build check: `CI=true DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 PATH=$HOME/.dotnet:$PATH dotnet build SSMP/SSMP.csproj -c Release -o <out dir>`
 
 Rules:
+- The user adds details as comments on the issues, at any time, including on issues already fixed or integrated.
+  Every bot comment (yours and the agents') starts with "🤖 ", so any other comment is the user's: read them at each
+  step (`gh issue view <n> -R nfloch/ssmp-bugs --comments`, and before each report), and act on them: resume the
+  issue's agent (SendMessage) or start a new one, even if the issue is `correctif-pret`; answer with a "🤖 " comment.
 - Never take Papaours' log while his game is running: wait until it is closed.
 - No push to `fork` and no install unless the user asks. Push only to `fork` (nfloch/SSMP), never to `origin`.
 - The public repo must never receive log excerpts. Issues and extracts go to the private tracker only.
@@ -122,7 +126,8 @@ The agents use the default model. Their prompt (fill in the placeholders):
 > - **Goal:** find the cause, with evidence (log lines, `file:line`). If you have a fix you are confident in,
 >   implement it and build it with `<build command> -o <scratch dir>`. Commit it on `bug/<issue>` with a message that
 >   ends with `(nfloch/ssmp-bugs#<issue>)`.
-> - **Report:** post one comment on the issue with `gh issue comment <issue> -R nfloch/ssmp-bugs`, in French: cause,
+> - **Report:** post one comment on the issue with `gh issue comment <issue> -R nfloch/ssmp-bugs`, starting with
+>   "🤖 ", in French: cause,
 >   evidence, confidence, and branch/commit or "pas de correctif". Then return the same report.
 > - **Never:** push, touch the game install, run `rm -rf`, or edit `SUIVI.md`.
 
