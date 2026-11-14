@@ -32,6 +32,8 @@ internal class ServerSettingsUpdate : IPacketData {
                 packet.Write((bool) prop.GetValue(ServerSettings, null));
             } else if (prop.PropertyType == typeof(byte)) {
                 packet.Write((byte) prop.GetValue(ServerSettings, null));
+            } else if (prop.PropertyType == typeof(float)) {
+                packet.Write((float) prop.GetValue(ServerSettings, null));
             } else {
                 Logger.Error($"No write handler for property type: {prop.GetType()}");
             }
@@ -53,6 +55,8 @@ internal class ServerSettingsUpdate : IPacketData {
                 prop.SetValue(ServerSettings, packet.ReadBool(), null);
             } else if (prop.PropertyType == typeof(byte)) {
                 prop.SetValue(ServerSettings, packet.ReadByte(), null);
+            } else if (prop.PropertyType == typeof(float)) {
+                prop.SetValue(ServerSettings, packet.ReadFloat(), null);
             } else {
                 Logger.Error($"No read handler for property type: {prop.GetType()}");
             }

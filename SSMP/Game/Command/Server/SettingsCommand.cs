@@ -105,6 +105,22 @@ internal class SettingsCommand : IServerCommand, ICommandWithDescription {
             }
 
             newValueObject = newValueByte;
+        } else if (settingProperty.PropertyType == typeof(float)) {
+            // "auto" stands for 0, and both "1.5" and "1,5" are accepted whatever the system language
+            var floatString = newValueString.Equals("auto", System.StringComparison.OrdinalIgnoreCase)
+                ? "0"
+                : newValueString.Replace(',', '.');
+            if (!float.TryParse(
+                    floatString,
+                    System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out var newValueFloat
+                ) || float.IsNaN(newValueFloat) || float.IsInfinity(newValueFloat) || newValueFloat < 0f) {
+                commandSender.SendMessage("Please provide a number >= 0 (e.g. 1.5) or 'auto' for this setting");
+                return;
+            }
+
+            newValueObject = newValueFloat;
         } else {
             commandSender.SendMessage(
                 $"Could not change value of setting with name: {propName} (unhandled type)");

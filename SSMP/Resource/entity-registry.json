@@ -9,7 +9,8 @@
     "internal_name": "Coral Conch Driller Giant",
     "fsm_names": [
       "Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Garmond Black Threaded Fighter",
@@ -22,7 +23,8 @@
     "fsm_names": [
       "Control",
       "Stun Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Farmer Wisp Immolater Variant",
@@ -194,7 +196,8 @@
     "fsm_names": [
       "Control",
       "Harpoon Evade (inactive for now)"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Cloverstag White Boss",
@@ -210,7 +213,8 @@
       "Cast Timer",
       "Harpoon Evade",
       "Protect from underneath nail"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Crystal Drifter Giant",
@@ -437,7 +441,8 @@
     "fsm_names": [
       "Control",
       "Stun Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Slab Fly Small Fresh",
@@ -513,7 +518,8 @@
     "fsm_names": [
       "Control",
       "Death Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Giant Centipede Coil",
@@ -525,7 +531,8 @@
     "internal_name": "Giant Centipede",
     "fsm_names": [
       "Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Giant Centipede Head",
@@ -538,7 +545,8 @@
     "fsm_names": [
       "Control",
       "Death Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Abyss Crawler Large",
@@ -564,7 +572,8 @@
       "Control",
       "Stun Control",
       "hero_binding_check"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Bone Worm BlueBlood",
@@ -793,7 +802,8 @@
       "Battle Music",
       "Stun Control",
       "hero_binding_check"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Crowman Juror Tiny",
@@ -947,7 +957,8 @@
       "Control",
       "Bomb Blacken",
       "Stun Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Dock Guard Slasher",
@@ -961,7 +972,8 @@
       "Control",
       "Bomb Blacken",
       "Stun Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Blade Spider Hang",
@@ -1025,7 +1037,8 @@
     "fsm_names": [
       "Control",
       "FSM"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Citadel Bat Large",
@@ -1079,7 +1092,8 @@
     "fsm_names": [
       "Control",
       "Stun Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Grasshopper Child",
@@ -1106,7 +1120,8 @@
       "Control",
       "Music Start",
       "Stun Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Roachfeeder Short",
@@ -1186,7 +1201,8 @@
       "Stun Control",
       "Tornado Emission",
       "Tween Y Pos"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Lilypad Plat Trap",
@@ -1215,7 +1231,8 @@
       "Notify Boss Scene of Damage",
       "Stun Control",
       "Summon Cooldown"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Bone Hunter Tiny",
@@ -1290,7 +1307,8 @@
     "fsm_names": [
       "Control",
       "Stun Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Spike Lazy Flyer",
@@ -1376,7 +1394,8 @@
     "internal_name": "Wisp Pyre Effigy",
     "fsm_names": [
       "Summon Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Shellwood Goomba",
@@ -1493,7 +1512,8 @@
       "Control",
       "FSM",
       "Stun Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Mossbone Stalactite",
@@ -1748,7 +1768,8 @@
       "Circle Slash Catch",
       "Multicircle",
       "Stun Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Pinstress Boss",
@@ -1762,7 +1783,8 @@
       "Control",
       "Battle Range Check",
       "Stun Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Rosary Pilgrim",
@@ -1841,7 +1863,8 @@
       "Damage Effects",
       "Death",
       "Stun Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Swamp Barnacle",
@@ -1908,7 +1931,8 @@
       "Control",
       "Custom Stun Control",
       "Head Invuln Check"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Lost Lace Boss",
@@ -1925,7 +1949,8 @@
       "Stun Control",
       "Summon Bullets",
       "Tendril Cooldown"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Zap Core Enemy",
@@ -1937,7 +1962,8 @@
     "internal_name": "Zap Core Enemy",
     "fsm_names": [
       "Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Abyss Tendrils",
@@ -2337,7 +2363,8 @@
       "Slash Dust Effects",
       "Stun Control",
       "Y Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "First Weaver",
@@ -2351,7 +2378,8 @@
       "Control",
       "Fake Death",
       "Stun Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Spinner Boss",
@@ -2365,7 +2393,8 @@
       "Control",
       "Fake Death",
       "Stun Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Swamp Shaman",
@@ -2378,7 +2407,8 @@
     "fsm_names": [
       "Control",
       "Stun Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Bell Goomba",
@@ -2545,7 +2575,8 @@
     "internal_name": "Gloom Beast",
     "fsm_names": [
       "Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Lightbearer",
@@ -2635,7 +2666,8 @@
       "FSM",
       "Save Hero",
       "Stun Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Abyss Mass",
@@ -2647,7 +2679,8 @@
     "internal_name": "Abyss Mass",
     "fsm_names": [
       "Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Bone Beast",
@@ -2659,7 +2692,8 @@
     "internal_name": "Bone Beast",
     "fsm_names": [
       "Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Bone Flyer",
@@ -2699,7 +2733,8 @@
       "Control",
       "Crust Up",
       "Stun Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Crawfather",
@@ -2713,7 +2748,8 @@
       "Control",
       "Flap Sfx",
       "Stun Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Crypt Worm",
@@ -2768,7 +2804,8 @@
       "Detect Lava Damage",
       "Escape CamLock Control",
       "Stun Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Mite Heavy",
@@ -2857,7 +2894,8 @@
       "Behaviour",
       "Control Invincible Effect",
       "Protect From Below"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Small Crab",
@@ -2896,7 +2934,8 @@
       "Control",
       "Check Death",
       "Stun Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "song_golem",
@@ -2909,7 +2948,8 @@
     "internal_name": "Cogwork Golem",
     "fsm_names": [
       "Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Bone Worm",
@@ -2935,7 +2975,8 @@
     "fsm_names": [
       "Control",
       "Death Checker"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Driller B",
@@ -2948,7 +2989,8 @@
     "fsm_names": [
       "Control",
       "Death Checker"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Driller C",
@@ -2960,7 +3002,8 @@
     "internal_name": "Coral Conch Driller",
     "fsm_names": [
       "Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Dustroach",
@@ -3069,7 +3112,8 @@
       "Attack Control",
       "Phase Control",
       "Stun Control"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Bell Fly",
@@ -3096,7 +3140,8 @@
       "Control",
       "Check Corner",
       "Check Height"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Dancer B",
@@ -3110,7 +3155,8 @@
       "Control",
       "Check Corner",
       "Check Height"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Gloomfly",
@@ -3187,7 +3233,8 @@
     "fsm_names": [
       "Phase Control",
       "Receive Explosion Dmg"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Phantom",
@@ -3203,7 +3250,8 @@
       "Set Cross Stitch Connected",
       "Stun Control",
       "hero_binding_check"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Trobbio",
@@ -3217,7 +3265,8 @@
       "Control",
       "Stun Control",
       "Tornado Emission"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Wraith",
@@ -3296,7 +3345,8 @@
       "Phase Control",
       "Shield Collider",
       "Stun"
-    ]
+    ],
+    "boss": true
   },
   {
     "base_object_name": "Grass Ball",

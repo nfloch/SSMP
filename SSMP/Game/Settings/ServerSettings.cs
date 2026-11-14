@@ -318,6 +318,20 @@ public class ServerSettings : IServerSettings, IEquatable<ServerSettings> {
         }
     } = 1;
 
+    /// <inheritdoc />
+    [SettingAlias("bosshp", "bosshealth", "bosshpmult", "bosshealthmult")]
+    [ModMenuSetting("Boss Health Multiplier", "Multiplier of the max health of bosses, 0 for the number of players")]
+    public float BossHealthMultiplier {
+        get;
+        set {
+            // Negative or invalid values mean the default, the number of connected players
+            if (float.IsNaN(value) || float.IsInfinity(value) || value < 0f) value = 0f;
+            if (field.Equals(value)) return;
+            field = value;
+            ChangeEvent?.Invoke(nameof(BossHealthMultiplier));
+        }
+    }
+
     /// <summary>
     /// Set all properties in this <see cref="ServerSettings"/> instance to the values from the given
     /// <see cref="ServerSettings"/> instance.

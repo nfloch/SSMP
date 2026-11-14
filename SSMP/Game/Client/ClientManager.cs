@@ -286,6 +286,9 @@ internal class ClientManager : IClientManager {
         _entityManager.Initialize();
         _saveManager.Initialize();
 
+        // The other players plus the local player
+        BossHealth.Initialize(() => _serverSettings.BossHealthMultiplier, () => _playerData.Count + 1);
+
         RegisterCommands();
 
         _addonManager.LoadAddons();
@@ -1192,6 +1195,17 @@ internal class ClientManager : IClientManager {
 
             UiManager.InternalChatBox.AddMessage(message);
             Logger.Info(message);
+        }
+
+        // Check whether the boss health multiplier changed
+        if (!_serverSettings.BossHealthMultiplier.Equals(newServerSettings.BossHealthMultiplier)) {
+            var multiplier = newServerSettings.BossHealthMultiplier;
+            var message = multiplier > 0f
+                ? $"Boss health is now multiplied by {multiplier:0.##} (from the next boss spawn)"
+                : "Boss health is now multiplied by the number of players (from the next boss spawn)";
+
+            UiManager.InternalChatBox.AddMessage(message);
+            Logger.Info($"[BossHp] {message}");
         }
 
         // Update the settings so callbacks can read updated values

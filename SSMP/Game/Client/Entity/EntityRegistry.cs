@@ -204,6 +204,14 @@ internal class EntityRegistryEntry {
     public List<string>? NonAcquiringRanges { get; set; }
 
     /// <summary>
+    /// Whether this entity is a boss (or a part of a boss): its max health is multiplied by the boss health
+    /// multiplier when it spawns (<see cref="BossHealth"/>). Set by hand in the registry file for the bosses and
+    /// boss-like fights that have their own defeated flag in the save.
+    /// </summary>
+    [JsonProperty("boss")]
+    public bool IsBoss { get; set; }
+
+    /// <summary>
     /// Child entries nested under this entry. Populated from the registry file and validated
     /// during startup. Null if no children are defined.
     /// </summary>

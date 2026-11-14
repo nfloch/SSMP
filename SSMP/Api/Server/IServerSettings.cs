@@ -135,4 +135,9 @@ public interface IServerSettings {
     /// The number of masks of damage that Tacks deal.
     /// </summary>
     byte TacksDamage { get; }
+
+    /// <summary>
+    /// The multiplier of the max health of bosses. 0 means the number of connected players.
+    /// </summary>
+    float BossHealthMultiplier { get; }
 }

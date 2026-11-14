@@ -69,6 +69,12 @@ internal class Entity {
     public EntityType Type { get; }
 
     /// <summary>
+    /// Whether the entity is a boss, from its entry in the entity registry. Its max health is multiplied by
+    /// <see cref="BossHealth"/>.
+    /// </summary>
+    public bool IsBoss { get; set; }
+
+    /// <summary>
     /// Host-client pair for the game objects.
     /// </summary>
     public HostClientPair<GameObject> Object { get; }
@@ -1025,6 +1031,12 @@ internal class Entity {
             component.InitializeHost(sceneHostEpoch);
         }
 
+        // After the health component took the unscaled HP as its last value, so the scaled HP is sent to the server
+        // (as a heal) on the next update. The boss FSM has not started yet: it starts on the next frame.
+        if (IsBoss) {
+            BossHealth.OnSpawnAsSceneHost(Object.Host);
+        }
+
         // Deregister the hook for updating the active value of the host object
         _activateGameObjectHook?.Dispose();
         _activateGameObjectHook = null;
@@ -1043,6 +1055,10 @@ internal class Entity {
 
         foreach (var component in _components.Values) {
             component.InitializeClient(sceneHostEpoch);
+        }
+
+        if (IsBoss) {
+            BossHealth.OnSpawnAsSceneClient(Object.Host);
         }
     }
 

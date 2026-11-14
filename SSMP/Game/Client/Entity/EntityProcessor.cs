@@ -216,6 +216,8 @@ internal class EntityProcessor {
             );
         }
 
+        entity.IsBoss = foundEntry.IsBoss;
+
         _entities[id] = entity;
 
         Entities.Add(entity);
@@ -234,6 +236,10 @@ internal class EntityProcessor {
             } else {
                 // Since this is a late load we need to update the 'active' state of the entity
                 entity.UpdateIsActive(true);
+
+                if (entity.IsBoss) {
+                    BossHealth.OnSpawnAsSceneClient(entity.Object.Host);
+                }
             }
         }
     }
