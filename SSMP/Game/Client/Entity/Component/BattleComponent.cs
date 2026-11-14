@@ -15,8 +15,9 @@ namespace SSMP.Game.Client.Entity.Component;
 /// <list type="bullet">
 /// <item>An arena starts in two ways: its trigger collider when the local hero enters it, or an FSM call
 /// (<c>CallMethodProper BattleScene.StartBattle</c>, bosses like Mossbone Mother). Either way, only the scene host's
-/// start counts. On a scene client, the trigger is ignored (<see cref="ShouldIgnoreTrigger"/>): the client starts its
-/// arena once the scene host's arena is started and its own hero is inside the arena area.</item>
+/// start counts, and only once all players are inside (<see cref="ArenaWait"/>). On a scene client, the trigger is
+/// ignored (<see cref="ShouldIgnoreTrigger"/>): the client starts its arena once the scene host's arena is started and
+/// its own hero is inside the arena area.</item>
 /// <item>The end of the scene host's arena ends the client's arena.</item>
 /// <item>The state is sent as entity data that the server stores, so a player entering the scene during the battle
 /// (late arrival, return after a death) gets the gates closed, and gets them opened at the end.</item>
@@ -45,11 +46,8 @@ internal class BattleComponent : EntityComponent {
     /// <summary>The last state sent or received (owner only).</summary>
     private byte _state;
 
-    /// <summary>
-    /// Whether the local hero entered the trigger while this game was not (yet) known as the scene host. If this game
-    /// becomes the scene host, the arena starts as the game would have done.
-    /// </summary>
-    private bool _ignoredTrigger;
+    /// <summary>Whether the ignored trigger was logged, to log it once.</summary>
+    private bool _loggedIgnoredTrigger;
 
     /// <summary>The coroutine that waits for the local hero to be inside the arena before starting it.</summary>
     private Coroutine? _startRoutine;
@@ -90,13 +88,14 @@ internal class BattleComponent : EntityComponent {
             return false;
         }
 
-        if (!owner._ignoredTrigger) {
+        if (!owner._loggedIgnoredTrigger) {
             Logger.Info(
                 $"Ignoring the trigger of battle '{battleScene.name}' as scene client, the scene host's arena rules"
             );
         }
 
-        owner._ignoredTrigger = true;
+        // Starting it if this game becomes the scene host: ArenaWait, once all players are inside
+        owner._loggedIgnoredTrigger = true;
         return true;
     }
 
@@ -145,16 +144,6 @@ internal class BattleComponent : EntityComponent {
     private void OnOwnerUpdate() {
         if (IsControlled || _battleScene == null) {
             return;
-        }
-
-        if (_ignoredTrigger) {
-            // Became the scene host after the trigger was ignored: start the arena like the trigger would have
-            _ignoredTrigger = false;
-            if (_state != StateStarted && !_battleScene.started && !_battleScene.completed &&
-                _battleScene.currentWave == 0 && IsHeroInside()) {
-                Logger.Info($"Starting battle '{_battleScene.name}' whose trigger was ignored, now scene host");
-                _battleScene.StartBattle();
-            }
         }
 
         var newState = _state;
@@ -271,32 +260,8 @@ internal class BattleComponent : EntityComponent {
     /// Whether the given position is inside the area of the arena: its trigger collider, even when the game disabled
     /// it (bosses that start the arena themselves). Without a collider, any position is considered inside.
     /// </summary>
-    public static bool IsInside(BattleScene battleScene, Vector2 position) {
-        var transform = battleScene.transform;
-
-        var box = battleScene.GetComponent<BoxCollider2D>();
-        if (box != null) {
-            var center = (Vector2) transform.TransformPoint(box.offset);
-            var scale = transform.lossyScale;
-            var half = new Vector2(Mathf.Abs(box.size.x * scale.x), Mathf.Abs(box.size.y * scale.y)) / 2f;
-            return Mathf.Abs(position.x - center.x) <= half.x && Mathf.Abs(position.y - center.y) <= half.y;
-        }
-
-        var polygon = battleScene.GetComponent<PolygonCollider2D>();
-        if (polygon != null && polygon.points.Length > 0) {
-            var min = new Vector2(float.MaxValue, float.MaxValue);
-            var max = new Vector2(float.MinValue, float.MinValue);
-            foreach (var point in polygon.points) {
-                var world = (Vector2) transform.TransformPoint(point + polygon.offset);
-                min = Vector2.Min(min, world);
-                max = Vector2.Max(max, world);
-            }
-
-            return position.x >= min.x && position.x <= max.x && position.y >= min.y && position.y <= max.y;
-        }
-
-        return true;
-    }
+    public static bool IsInside(BattleScene battleScene, Vector2 position) =>
+        ArenaWait.Contains(battleScene, position);
 
     /// <summary>
     /// Whether the battle of the given arena is in progress on the scene host (state seen by every game of the scene:
@@ -334,6 +299,28 @@ internal class BattleComponent : EntityComponent {
 
         return false;
     }
+
+    #region Read-only helpers for ArenaWait (arena start, nfloch/ssmp-bugs#8 part A)
+
+    /// <summary>
+    /// Whether the given arena has synced entities: its start and end follow the scene host.
+    /// </summary>
+    public static bool IsSyncedArena(BattleScene battleScene) =>
+        Owners.TryGetValue(battleScene, out var owner) && owner != null;
+
+    /// <summary>
+    /// Whether the scene host's arena has ended, as last received or sent.
+    /// </summary>
+    public static bool IsEndedOnSceneHost(BattleScene battleScene) =>
+        Owners.TryGetValue(battleScene, out var owner) && owner != null && owner._state == StateEnded;
+
+    /// <summary>
+    /// Whether the scene host's arena has started or ended, as last received or sent: nothing waits any more.
+    /// </summary>
+    public static bool IsStartedOnSceneHost(BattleScene battleScene) =>
+        Owners.TryGetValue(battleScene, out var owner) && owner != null && owner._state != StateIdle;
+
+    #endregion
 
     /// <inheritdoc />
     public override void Destroy() {

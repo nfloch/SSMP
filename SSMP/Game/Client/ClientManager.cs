@@ -123,6 +123,11 @@ internal class ClientManager : IClientManager {
     private readonly GamePatcher _gamePatcher;
 
     /// <summary>
+    /// Holds the start of arenas and bosses until all connected players are inside (nfloch/ssmp-bugs#8).
+    /// </summary>
+    private readonly ArenaWait _arenaWait;
+
+    /// <summary>
     /// The FSM patcher instance.
     /// </summary>
     private readonly FsmPatcher _fsmPatcher;
@@ -263,6 +268,7 @@ internal class ClientManager : IClientManager {
 
         _pauseManager = new PauseManager(netClient);
         _gamePatcher = new GamePatcher(netClient, _entityManager);
+        _arenaWait = new ArenaWait(netClient, _entityManager, _playerData);
         _fsmPatcher = new FsmPatcher();
 
         _commandManager = new ClientCommandManager();
@@ -350,6 +356,7 @@ internal class ClientManager : IClientManager {
         if (_fullSynchronisation) {
             _entityManager.RegisterHooks();
             _saveManager.RegisterHooks();
+            _arenaWait.RegisterHooks();
         }
 
         // Register handlers for various things
@@ -378,6 +385,7 @@ internal class ClientManager : IClientManager {
         if (_fullSynchronisation) {
             _entityManager.DeregisterHooks();
             _saveManager.DeregisterHooks();
+            _arenaWait.DeregisterHooks();
         }
 
         // Deregister handlers for various things
