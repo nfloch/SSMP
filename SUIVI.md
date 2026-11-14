@@ -273,6 +273,30 @@ autres peuvent arriver n'importe où et seront repris avec les prochains logs (h
     est à la racine de la scène : le combat ne finissait jamais et les portes restaient fermées. Correctif : à la mort
     de la copie, l'objet hôte est retiré de sa vague et le combat recompte (log `removing it from the enemies of
     battle`).
+
+### Partie du 14/11 00:44, à trois avec KlayFouly, build `7b3cf20` (issues nfloch/ssmp-bugs, à tester)
+
+23. **Logs jamais envoyés** : le Mono d'Unity fait échouer un POST sans contenu (NullReferenceException). Les
+    requêtes Gokapi sans contenu envoient un corps vide (`LogUploader`).
+24. **Arène et musique de Mossbone Mother absentes chez les clients (#4), alarme de Room_Forge décalée (#2)** :
+    l'arène et la musique ne démarraient que chez l'hôte de salle, ou chez chacun via son propre déclencheur.
+    `BattleComponent` envoie l'état de l'arène de l'hôte (en cours / terminée, stocké par le serveur) ; un client, y
+    compris arrivé en retard, démarre la sienne s'il est dans l'arène et la termine avec l'hôte ; son propre
+    déclencheur est ignoré. `MusicComponent` créé pour toute entité dont un FSM joue `ApplyMusicCue`, cue gardé
+    pour les retardataires puis remis à zéro à la fin. Logs `[BattleDiag]`, `Battle '…' started/ended as scene
+    host`, `Boss music is playing on the scene host`.
+25. **Ennemis d'arène intouchables après une mort (#5, Bone_01)** : un ennemi sorti du décor change de couche
+    physique par son FSM, que le joueur absent ne reçoit pas. `LayerComponent` envoie la couche comme donnée
+    stockée ; les instantanés F8 affichent `layer=`.
+26. **Cartes et compétences communes (#1)** : cartes de zone, plume, épingles, marqueurs et les 16 compétences
+    passent en `SyncType: Server`.
+27. **Exceptions des MossBone Crawler (#3)** : le `Crawler` détruit sur la copie restait abonné aux dégâts ; il est
+    désabonné. Le ciblage lui-même (#3) attend une décision.
+28. **Inventaire partagé en direct (#6)** : `InventorySync`, objet par objet, fusion chez l'hôte ; équipement propre
+    à chacun gardé par le serveur. Logs `[InvSync]`.
+29. **Tutoriel d'une compétence obtenue par un autre joueur (#7)** : `AbilityTutorials`, affiché quand le joueur
+    est libre. Logs `[AbilityTuto]`.
+- Ces correctifs ajoutent des paquets et des composants réseau : tout le monde doit avoir le même build.
 - Logs : chaque joueur écrit maintenant son inventaire, son équipement et ses capacités (`[Inventory]`) en entrant
   dans la partie et à chaque banc.
 
