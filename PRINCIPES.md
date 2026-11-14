@@ -33,13 +33,15 @@ connectés (Papaours, 14/11).
 | Améliorations d'aiguille, niveau de soie, emplacements d'outils (`nailUpgrades`, `silkRegenMax`, `UnlockedExtra*Slot`) | à décider |
 | Le reste de PlayerData (quêtes, PNJ, dialogues) : environ 1 200 entrées en `Player` | par défaut, à revoir au cas par cas |
 
-**Inventaire** (outils, blasons, objets, reliques, quêtes, journal : `Tools`, `ToolEquips`, `Collectables`…) : ce
-sont des structures complexes, non synchronisées en direct. À la connexion, un joueur reçoit une copie de celles de
-l'hôte (`LoginSaveCopy`), puis chacun les fait évoluer de son côté (décision du 13/11, correctif 12).
-- Conséquence connue : ce qu'un joueur distant gagne pendant la session est perdu à sa prochaine connexion.
-- **Incohérence ouverte** : les compétences de soie (sphère de fil, lancer d'aiguille…) sont aussi des outils de
-  `Tools`. Leur drapeau `has*` est commun, mais l'outil n'arrive chez les autres qu'à la connexion suivante, et
-  seulement s'il a été gagné par l'hôte.
+**Inventaire** (outils et compétences de soie, blasons, objets, reliques, quêtes, journal) : **partagé en direct**,
+objet par objet (`InventorySync`, 14/11, nfloch/ssmp-bugs#6). Ce qu'un joueur gagne arrive tout de suite chez les
+autres ; la sauvegarde commune est celle de l'hôte, qui reçoit tout.
+- Débloqué / ramassé / déposé : union. Objets (`Collectables`) : réserve commune, une dépense retire l'objet chez
+  tous. Journal : maximum (pas de double comptage). Quêtes : acceptée/terminée au dernier changement.
+- Propre à chaque joueur, gardé par le serveur pour sa reconnexion : outils équipés, disposition des blasons,
+  emplacements supplémentaires, fioles, munitions, marqueurs « nouveau ».
+- À décider : PNJ et dialogues liés aux quêtes (encore propres à chacun alors que les quêtes sont communes),
+  emplacements de blason débloqués.
 
 ## Hôte du serveur, hôte de salle
 
