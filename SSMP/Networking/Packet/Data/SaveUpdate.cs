@@ -70,6 +70,12 @@ internal class CurrentSave : IPacketData {
     /// </summary>
     public Dictionary<ushort, byte[]> SaveData { get; set; }
 
+    /// <summary>
+    /// The personal part of the player's inventory stored by the server (gzipped JSON, see
+    /// <c>SSMP.Game.Client.Save.InventorySync</c>), applied over the host's copy. Empty if none is stored.
+    /// </summary>
+    public byte[] PersonalInventory { get; set; } = [];
+
     public CurrentSave() {
         SaveData = new Dictionary<ushort, byte[]>();
     }
@@ -79,6 +85,12 @@ internal class CurrentSave : IPacketData {
         packet.Write(NewForPlayer);
 
         WriteSaveDataDict(SaveData, packet);
+
+        var personalLength = (ushort) System.Math.Min(PersonalInventory.Length, ushort.MaxValue);
+        packet.Write(personalLength);
+        for (var i = 0; i < personalLength; i++) {
+            packet.Write(PersonalInventory[i]);
+        }
     }
 
     /// <inheritdoc />
@@ -86,6 +98,12 @@ internal class CurrentSave : IPacketData {
         NewForPlayer = packet.ReadBool();
 
         SaveData = ReadSaveDataDict(packet);
+
+        var personalLength = packet.ReadUShort();
+        PersonalInventory = new byte[personalLength];
+        for (var i = 0; i < personalLength; i++) {
+            PersonalInventory[i] = packet.ReadByte();
+        }
     }
 
     /// <summary>

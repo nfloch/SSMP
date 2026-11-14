@@ -459,6 +459,10 @@ internal class ClientManager : IClientManager {
                 ClientUpdatePacketId.SaveUpdate,
                 OnSaveUpdate
             );
+            _packetManager.RegisterClientUpdatePacketHandler<InventoryItemUpdate>(
+                ClientUpdatePacketId.InventoryItemUpdate,
+                OnInventoryItemUpdate
+            );
         }
     }
 
@@ -484,6 +488,7 @@ internal class ClientManager : IClientManager {
             _packetManager.DeregisterClientUpdatePacketHandler(ClientUpdatePacketId.ReliableEntityUpdate);
             _packetManager.DeregisterClientUpdatePacketHandler(ClientUpdatePacketId.SceneHostTransfer);
             _packetManager.DeregisterClientUpdatePacketHandler(ClientUpdatePacketId.SaveUpdate);
+            _packetManager.DeregisterClientUpdatePacketHandler(ClientUpdatePacketId.InventoryItemUpdate);
         }
     }
 
@@ -1395,6 +1400,18 @@ internal class ClientManager : IClientManager {
         }
 
         _saveManager.UpdateSaveWithData(saveUpdate);
+    }
+
+    /// <summary>
+    /// Callback method for when another player changed an item of the shared inventory.
+    /// </summary>
+    /// <param name="update">The InventoryItemUpdate packet data.</param>
+    private void OnInventoryItemUpdate(InventoryItemUpdate update) {
+        if (!_fullSynchronisation) {
+            return;
+        }
+
+        _saveManager.OnInventoryItemUpdate(update);
     }
 
     /// <summary>

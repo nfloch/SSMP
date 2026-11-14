@@ -77,5 +77,15 @@ public enum ServerUpdatePacketId {
     /// <summary>
     /// Player settings are update for the local player.
     /// </summary>
-    PlayerSetting = 14
+    PlayerSetting = 14,
+
+    /// <summary>
+    /// An item of the shared inventory changed (tool, crest, collectable, quest…).
+    /// </summary>
+    InventoryItemUpdate = 15,
+
+    /// <summary>
+    /// The personal part of the player's inventory changed (crest slots, equipped tools, ammo).
+    /// </summary>
+    InventoryPersonalUpdate = 16
 }

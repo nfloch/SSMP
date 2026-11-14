@@ -98,6 +98,16 @@ internal class SaveManager {
     private CurrentSave? _newGameSave;
 
     /// <summary>
+    /// Live sharing of the inventory (tools, crests, collectables, quests, journal…) with the other players.
+    /// </summary>
+    private readonly InventorySync _inventorySync;
+
+    /// <summary>
+    /// Whether the save sent by the server at login has been applied since the last connection.
+    /// </summary>
+    private bool _saveApplied;
+
+    /// <summary>
     /// List of HashSet variables in PlayerData.
     /// </summary>
     private static readonly List<string> HashSetVariables = [
@@ -122,6 +132,12 @@ internal class SaveManager {
         _listHashes = new Dictionary<string?, int>();
         _playerDataSimpleSyncFields = [];
         _playerDataCompoundSyncFields = [];
+
+        _inventorySync = new InventorySync(
+            netClient,
+            () => IsHostingServer,
+            () => _saveApplied && _newGameSave == null
+        );
     }
 
     /// <summary>
@@ -129,6 +145,7 @@ internal class SaveManager {
     /// </summary>
     public void Initialize() {
         _netClient.ConnectEvent += OnConnect;
+        _netClient.DisconnectEvent += () => _saveApplied = false;
 
         foreach (var field in typeof(PlayerData).GetFields()) {
             var fieldName = field.Name;
@@ -177,6 +194,9 @@ internal class SaveManager {
     /// </summary>
     /// <param name="serverInfo">The server info received from the server.</param>
     private void OnConnect(ServerInfo serverInfo) {
+        _inventorySync.Enabled = serverInfo.FullSynchronisation;
+        _inventorySync.Reset();
+
         if (serverInfo.FullSynchronisation) {
             ResetLastPlayerData();
         }
@@ -215,6 +235,7 @@ internal class SaveManager {
 
         OnUpdatePlayerData();
         OnUpdateCompounds();
+        _inventorySync.Update();
     }
 
     /// <summary>
@@ -755,6 +776,7 @@ internal class SaveManager {
     /// <param name="currentSave">The save data to set.</param>
     public void SetSaveWithData(CurrentSave currentSave) {
         if (IsHostingServer) {
+            _saveApplied = true;
             Logger.Info("Received current save, but player is hosting, not updating");
             return;
         }
@@ -765,6 +787,7 @@ internal class SaveManager {
 
         // Starting a new game can reset the save data that we have just applied
         _newGameSave = currentSave.NewForPlayer ? currentSave : null;
+        _saveApplied = true;
     }
 
     /// <summary>
@@ -780,6 +803,21 @@ internal class SaveManager {
                 Logger.Warn($"Could not apply save data with index {index}, skipping:\n{e}");
             }
         }
+
+        // The player's own loadout, over the host's copy of the inventory applied above
+        try {
+            InventorySync.ApplyPersonal(currentSave.PersonalInventory);
+        } catch (Exception e) {
+            Logger.Warn($"[InvSync] Could not apply the personal inventory, keeping the host's loadout:\n{e}");
+        }
+    }
+
+    /// <summary>
+    /// Callback method for when another player changed an item of the shared inventory.
+    /// </summary>
+    /// <param name="update">The item change relayed by the server.</param>
+    public void OnInventoryItemUpdate(InventoryItemUpdate update) {
+        _inventorySync.Receive(update);
     }
 
     /// <summary>

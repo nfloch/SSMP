@@ -32,6 +32,13 @@ internal class ServerSaveData {
     public Dictionary<string, Dictionary<ushort, byte[]>> PlayerSaveData { get; set; } = new();
 
     /// <summary>
+    /// The personal part of each remote player's inventory (crest slots, equipped tools, ammo, liquids), mapped to
+    /// their auth keys. Gzipped JSON sent by the player, opaque to the server. The shared part of the inventory lives
+    /// in the host's own PlayerData.
+    /// </summary>
+    public Dictionary<string, byte[]> PersonalInventory { get; set; } = new();
+
+    /// <summary>
     /// Static constructor for initializing the indices for the Steel Soul variable.
     /// </summary>
     static ServerSaveData() {
@@ -62,6 +69,10 @@ internal class ServerSaveData {
         }
 
         currentSave.SaveData = saveData;
+
+        if (PersonalInventory.TryGetValue(authKey, out var personalInventory)) {
+            currentSave.PersonalInventory = personalInventory;
+        }
 
         return currentSave;
     }

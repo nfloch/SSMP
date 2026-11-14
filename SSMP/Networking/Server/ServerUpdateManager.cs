@@ -603,4 +603,15 @@ internal class ServerUpdateManager : UpdateManager<ClientUpdatePacket, ClientUpd
             );
         }
     }
+
+    /// <summary>
+    /// Add a change to an item of the shared inventory, made by another player, to the current packet.
+    /// </summary>
+    /// <param name="update">The item change.</param>
+    public void SetInventoryItemUpdate(InventoryItemUpdate update) {
+        lock (Lock) {
+            GetOrCreateCollection<InventoryItemUpdate>(ClientUpdatePacketId.InventoryItemUpdate)
+                .DataInstances.Add(update);
+        }
+    }
 }

@@ -387,6 +387,14 @@ internal abstract class ServerManager : IServerManager {
                 ServerUpdatePacketId.SaveUpdate,
                 OnSaveUpdate
             );
+            _packetManager.RegisterServerUpdatePacketHandler<InventoryItemUpdate>(
+                ServerUpdatePacketId.InventoryItemUpdate,
+                OnInventoryItemUpdate
+            );
+            _packetManager.RegisterServerUpdatePacketHandler<InventoryPersonalUpdate>(
+                ServerUpdatePacketId.InventoryPersonalUpdate,
+                OnInventoryPersonalUpdate
+            );
         }
     }
 
@@ -411,6 +419,8 @@ internal abstract class ServerManager : IServerManager {
             _packetManager.DeregisterServerUpdatePacketHandler(ServerUpdatePacketId.EntityUpdate);
             _packetManager.DeregisterServerUpdatePacketHandler(ServerUpdatePacketId.ReliableEntityUpdate);
             _packetManager.DeregisterServerUpdatePacketHandler(ServerUpdatePacketId.SaveUpdate);
+            _packetManager.DeregisterServerUpdatePacketHandler(ServerUpdatePacketId.InventoryItemUpdate);
+            _packetManager.DeregisterServerUpdatePacketHandler(ServerUpdatePacketId.InventoryPersonalUpdate);
         }
     }
 
@@ -1277,6 +1287,7 @@ internal abstract class ServerManager : IServerManager {
         if (ServerSaveData.IsSteelSoul()) {
             // We are running a Steel Soul save file, so we wipe the player-specific data for the player
             ServerSaveData.PlayerSaveData.Remove(playerData.AuthKey);
+            ServerSaveData.PersonalInventory.Remove(playerData.AuthKey);
 
             Logger.Info("  Wiped player save data (Steel Soul)");
         }
@@ -2009,6 +2020,56 @@ internal abstract class ServerManager : IServerManager {
                 NetServer.GetUpdateManagerForClient(otherId)?.SetSaveUpdate(packet.SaveDataIndex, packet.Value);
             }
         }
+    }
+
+    /// <summary>
+    /// Callback method for when a player's game changed an item of the shared inventory. Relayed to every other
+    /// player, the host included: each game merges it into its PlayerData, and the host's PlayerData is the common
+    /// save (saved by the host's game and copied to the players who log in).
+    /// </summary>
+    /// <param name="id">The ID of the player.</param>
+    /// <param name="packet">The item change.</param>
+    private void OnInventoryItemUpdate(ushort id, InventoryItemUpdate packet) {
+        if (!FullSynchronisation) {
+            return;
+        }
+
+        if (!_playerData.TryGetValue(id, out var playerData)) {
+            Logger.Debug($"Could not process inventory update from unknown player ID: {id}");
+            return;
+        }
+
+        Logger.Info($"[InvSync] Server relaying from ({id}, {playerData.Username}): {packet}");
+
+        foreach (var otherId in _playerData.Keys) {
+            if (otherId == id) {
+                continue;
+            }
+
+            NetServer.GetUpdateManagerForClient(otherId)?.SetInventoryItemUpdate(packet);
+        }
+    }
+
+    /// <summary>
+    /// Callback method for when a player sends the personal part of their inventory (crest slots, equipped tools,
+    /// ammo), stored for their next login.
+    /// </summary>
+    /// <param name="id">The ID of the player.</param>
+    /// <param name="packet">The personal inventory.</param>
+    private void OnInventoryPersonalUpdate(ushort id, InventoryPersonalUpdate packet) {
+        if (!FullSynchronisation) {
+            return;
+        }
+
+        if (!_playerData.TryGetValue(id, out var playerData)) {
+            Logger.Debug($"Could not process personal inventory from unknown player ID: {id}");
+            return;
+        }
+
+        ServerSaveData.PersonalInventory[playerData.AuthKey] = packet.Value;
+        Logger.Info(
+            $"[InvSync] Server stored the personal inventory of ({id}, {playerData.Username}), {packet.Value.Length} bytes"
+        );
     }
 
     /// <summary>

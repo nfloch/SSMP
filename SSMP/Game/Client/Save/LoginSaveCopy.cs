@@ -11,9 +11,11 @@ namespace SSMP.Game.Client.Save;
 
 /// <summary>
 /// Copies the host's inventory and progression structures to a player when they log in. These PlayerData fields
-/// (tools, crests, collectables, quests, journal…) are complex types that are not synced live (<c>Sync: false</c> in
-/// save-data.json) and not stored per player, so without this a remote player would start every session with them
-/// empty. After the login, each player's copy evolves on its own.
+/// (tools, crests, collectables, quests, journal…) are complex types that are not handled by the generic save sync
+/// (<c>Sync: false</c> in save-data.json), so without this a remote player would start every session with them
+/// empty. After the login, they are shared live item by item by <see cref="InventorySync"/>, which merges every
+/// player's gains into the host's PlayerData: the copy therefore holds what every player obtained. The personal
+/// part (loadout, ammo) of the player is then applied over it.
 /// </summary>
 internal static class LoginSaveCopy {
     /// <summary>
@@ -97,7 +99,7 @@ internal static class LoginSaveCopy {
     private static FieldInfo? GetField(string name) =>
         typeof(PlayerData).GetField(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
 
-    private static byte[] Compress(string text) {
+    internal static byte[] Compress(string text) {
         using var output = new MemoryStream();
         using (var gzip = new GZipStream(output, System.IO.Compression.CompressionLevel.Optimal)) {
             var bytes = Encoding.UTF8.GetBytes(text);
@@ -107,7 +109,7 @@ internal static class LoginSaveCopy {
         return output.ToArray();
     }
 
-    private static string Decompress(byte[] bytes) {
+    internal static string Decompress(byte[] bytes) {
         using var input = new GZipStream(new MemoryStream(bytes), CompressionMode.Decompress);
         using var reader = new StreamReader(input, Encoding.UTF8);
         return reader.ReadToEnd();

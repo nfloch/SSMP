@@ -405,6 +405,30 @@ internal class ClientUpdateManager : UpdateManager<ServerUpdatePacket, ServerUpd
     }
 
     /// <summary>
+    /// Add a change to an item of the shared inventory to the current packet.
+    /// </summary>
+    /// <param name="update">The item change.</param>
+    public void SetInventoryItemUpdate(InventoryItemUpdate update) {
+        lock (Lock) {
+            GetOrCreateCollection<InventoryItemUpdate>(ServerUpdatePacketId.InventoryItemUpdate)
+                .DataInstances.Add(update);
+        }
+    }
+
+    /// <summary>
+    /// Set the personal part of the local player's inventory in the current packet.
+    /// </summary>
+    /// <param name="value">The encoded personal inventory.</param>
+    public void SetInventoryPersonalUpdate(byte[] value) {
+        lock (Lock) {
+            CurrentUpdatePacket.SetSendingPacketData(
+                ServerUpdatePacketId.InventoryPersonalUpdate,
+                new InventoryPersonalUpdate { Value = value }
+            );
+        }
+    }
+
+    /// <summary>
     /// Set server settings update.
     /// </summary>
     /// <param name="serverSettings">The server settings instance that contains the updated values.</param>

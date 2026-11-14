@@ -35,6 +35,10 @@ internal class ServerUpdatePacket : UpdatePacket<ServerUpdatePacketId> {
                 return new ServerSettingsUpdate();
             case ServerUpdatePacketId.PlayerSetting:
                 return new ServerPlayerSettingUpdate();
+            case ServerUpdatePacketId.InventoryItemUpdate:
+                return new PacketDataCollection<InventoryItemUpdate>();
+            case ServerUpdatePacketId.InventoryPersonalUpdate:
+                return new InventoryPersonalUpdate();
             default:
                 return new EmptyData();
         }

@@ -54,8 +54,9 @@ internal class ModServerManager : ServerManager {
 
     /// <inheritdoc />
     /// <remarks>
-    /// Copies the host's tools, crests, collectables, quests and journal to the connecting player, since these are
-    /// not synced nor stored per player. Each player then keeps their own copy for the session.
+    /// Copies the host's tools, crests, collectables, quests and journal to the connecting player. The host's
+    /// PlayerData is the common inventory: every player's gains are merged into it live (see
+    /// <see cref="InventorySync"/>). The player's own loadout is sent in <c>CurrentSave.PersonalInventory</c>.
     /// </remarks>
     protected override void AddLoginSaveData(Networking.Packet.Data.CurrentSave currentSave) {
         foreach (var (index, value) in LoginSaveCopy.EncodeFromLocalPlayerData()) {
@@ -106,6 +107,10 @@ internal class ModServerManager : ServerManager {
                     if (modSaveFile != null) {
                         var serverSave = modSaveFile.ToServerSaveData();
                         ServerSaveData.PlayerSaveData = serverSave.PlayerSaveData;
+                        ServerSaveData.PersonalInventory = serverSave.PersonalInventory;
+                        Logger.Info(
+                            $"[InvSync] Loaded the personal inventory of {serverSave.PersonalInventory.Count} remote players"
+                        );
 
                         // Merged, because the file can be missing values that are present in the loaded save
                         foreach (var (index, value) in serverSave.GlobalSaveData) {
@@ -122,6 +127,7 @@ internal class ModServerManager : ServerManager {
                 }
             } else {
                 ServerSaveData.PlayerSaveData = new Dictionary<string, Dictionary<ushort, byte[]>>();
+                ServerSaveData.PersonalInventory = new Dictionary<string, byte[]>();
                 Logger.Info(
                     $"No remote player save file found at: {modSavePath}, initialized empty player save data."
                 );

@@ -27,6 +27,13 @@ internal class ModSaveFile {
     public SaveData GlobalSaveData { get; set; } = new();
 
     /// <summary>
+    /// The personal part of each remote player's inventory, mapped to their auth keys, as base64 of the gzipped JSON
+    /// (see <see cref="ServerSaveData.PersonalInventory"/>). Missing in files written by older builds.
+    /// </summary>
+    [JsonProperty("personalInventory")]
+    public Dictionary<string, string>? PersonalInventory { get; set; } = new();
+
+    /// <summary>
     /// Convert this class to an encoded ServerSaveData.
     /// </summary>
     /// <returns>The converted ServerSaveData instance.</returns>
@@ -38,6 +45,16 @@ internal class ModSaveFile {
 
         foreach (var authKey in PlayerSaveData.Keys) {
             serverSaveData.PlayerSaveData[authKey] = EncodeUtil.ConvertToServerSaveData(PlayerSaveData[authKey]);
+        }
+
+        if (PersonalInventory != null) {
+            foreach (var pair in PersonalInventory) {
+                try {
+                    serverSaveData.PersonalInventory[pair.Key] = System.Convert.FromBase64String(pair.Value);
+                } catch (System.FormatException) {
+                    // A damaged entry only loses that player's loadout
+                }
+            }
         }
 
         return serverSaveData;
@@ -59,6 +76,10 @@ internal class ModSaveFile {
             var saveData = EncodeUtil.ConvertFromServerSaveData(playerSaveData[authKey]);
             // Store the entries in the player save data dictionary of the instance
             modSaveFile.PlayerSaveData[authKey] = saveData;
+        }
+
+        foreach (var pair in serverSaveData.PersonalInventory) {
+            modSaveFile.PersonalInventory![pair.Key] = System.Convert.ToBase64String(pair.Value);
         }
 
         return modSaveFile;

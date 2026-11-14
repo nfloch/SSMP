@@ -98,4 +98,9 @@ internal enum ClientUpdatePacketId {
     /// Value in the save file has updated.
     /// </summary>
     SaveUpdate = 18,
+
+    /// <summary>
+    /// An item of the shared inventory changed for another player (tool, crest, collectable, quest…).
+    /// </summary>
+    InventoryItemUpdate = 19,
 }
