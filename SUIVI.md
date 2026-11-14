@@ -1,5 +1,8 @@
 # Suivi : build local SSMP world-sync (Papaours & Jojo)
 
+Les règles en vigueur du co-op (ce qui est commun, hôte de salle, arrivée en cours de route, boss) sont dans
+[PRINCIPES.md](PRINCIPES.md). Ce fichier-ci est l'historique.
+
 Ce fork part de la branche `world-sync` d'Extremelyd1/SSMP (commit `4d7ca26`, PR #99 en amont).
 On y ajoute nos correctifs au fil des parties tests.
 

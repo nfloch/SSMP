@@ -118,7 +118,9 @@ The agents use the default model. Their prompt (fill in the placeholders):
 >   - Bug folder: `<folder>` (one `<player>.txt` per player, `meta.json`). Players of this session: <players with
 >     their ids, from the `(id N)` of the markers>. Papaours hosts the server (id 0), and the scene host is the first
 >     player in the room.
->   - Read `SUIVI.md` first: it lists the fixes and design decisions already made.
+>   - Read `PRINCIPES.md` first: the co-op rules in force (what is shared or per player, scene host, players
+>     entering late must get the current state, bosses and arenas). If your fix would contradict a rule, don't
+>     decide: say so in your report. Then `SUIVI.md` for the history of the fixes.
 >   - Full logs, if the extract is not enough: the merged logs `<one path per player>`. Use `grep -n` and `sed -n` on small
 >     ranges only, never read them whole.
 >   - Decompiled game code, read only: `/home/papaours/claude-projects/ssmp-build/game-src`.
@@ -138,7 +140,8 @@ For each finished agent:
 2. Cherry-pick the good commits onto `world-sync`, resolve any conflicts, and build the whole branch.
 3. Comment on the issue `Repris dans nfloch/SSMP@<sha>` and set the label `correctif-pret`.
 4. If the fix is rejected, comment why and leave the issue `nouveau`, or set `sans-suite`.
-5. Add an entry to `SUIVI.md` that links the issue, and commit.
+5. Add an entry to `SUIVI.md` that links the issue, and commit. When the user takes a design decision (in the chat or
+   an issue comment), update `PRINCIPES.md` too.
 
 Then report to the user, one line per issue: cause, status, and link.
 
