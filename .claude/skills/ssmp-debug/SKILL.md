@@ -31,6 +31,8 @@ Rules:
   Every bot comment (yours and the agents') starts with "🤖 ", so any other comment is the user's: read them at each
   step (`gh issue view <n> -R nfloch/ssmp-bugs --comments`, and before each report), and act on them: resume the
   issue's agent (SendMessage) or start a new one, even if the issue is `correctif-pret`; answer with a "🤖 " comment.
+- Every bot comment, yours included, uses the short format of the agent prompt (step 5): at most 4–5 visible lines
+  in plain French for the user, the technical detail folded in `<details>`.
 - Never take Papaours' log while his game is running: wait until it is closed.
 - No push to `fork` and no install unless the user asks. Push only to `fork` (nfloch/SSMP), never to `origin`.
 - The public repo must never receive log excerpts. Issues and extracts go to the private tracker only.
@@ -128,9 +130,21 @@ The agents use the default model. Their prompt (fill in the placeholders):
 > - **Goal:** find the cause, with evidence (log lines, `file:line`). If you have a fix you are confident in,
 >   implement it and build it with `<build command> -o <scratch dir>`. Commit it on `bug/<issue>` with a message that
 >   ends with `(nfloch/ssmp-bugs#<issue>)`.
-> - **Report:** post one comment on the issue with `gh issue comment <issue> -R nfloch/ssmp-bugs`, starting with
->   "🤖 ", in French: cause,
->   evidence, confidence, and branch/commit or "pas de correctif". Then return the same report.
+> - **Report:** post one comment on the issue with `gh issue comment <issue> -R nfloch/ssmp-bugs`, in French, in
+>   this format (the user reads only the visible part, which has no jargon: no FSM, class or file names):
+>   ```
+>   🤖 **Cause :** <one plain sentence>
+>   **État :** <corrigé sur bug/<issue> (<commit>) | pas de correctif>, <confiance>
+>   **À tester :** <one sentence: what to do in game and what should happen>
+>   **Décision pour toi :** <the question, or "aucune">
+>
+>   <details><summary>Détails techniques (pour les agents)</summary>
+>
+>   <cause with evidence (log lines, file:line), fix, old code replaced, expected log lines, risks>
+>
+>   </details>
+>   ```
+>   Then return the same report.
 > - **No fix on a fix:** before adding code, look at the existing fixes of the same area (`SUIVI.md`, git log of the
 >   files). If your fix makes earlier code obsolete or redundant, replace or remove it instead of working around it,
 >   and list it in the report under "Ancien code remplacé / devenu inutile / à revoir".
