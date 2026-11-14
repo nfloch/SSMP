@@ -31,8 +31,9 @@ namespace SSMP.Game.Client;
 /// while someone is missing, and replayed (<c>Fsm.SetState</c>) once everyone is in. Two kinds of states are held:
 /// a state that calls <c>BattleScene.StartBattle</c> (Mossbone Mother), and a state entered from a trigger state
 /// (<c>Trigger2dEvent*</c>) that closes gates or sends <c>BATTLE START</c> within a few <c>FINISHED</c> steps (the
-/// <c>Return Battle</c> zone of the Bell Beast). The area is the encounter's (<see cref="Encounter.Contains"/>), or
-/// else the trigger's collider.</item>
+/// <c>Return Battle</c> zone of the Bell Beast). Inside the area of a boss encounter, the events the state sends to
+/// other FSMs are followed too (first Bell Beast fight: the silk vines send <c>FREE</c>, the beast lands and closes
+/// the gates). The area is the encounter's (<see cref="Encounter.Contains"/>), or else the trigger's collider.</item>
 /// <item>Any other <c>BattleScene.StartBattle</c> call while someone is missing is deferred: gates stay open.</item>
 /// <item>Progression gates: the gates of an arena not completed that are not on the side the local hero came from
 /// stay closed (see <see cref="CloseProgressionGates"/>).</item>
@@ -69,6 +70,9 @@ internal class ArenaWait {
 
     /// <summary>How many states a held transition may look ahead for the start of a battle.</summary>
     private const int StartSearchDepth = 3;
+
+    /// <summary>The same, when following the events sent to other FSMs inside a boss encounter.</summary>
+    private const int StartSearchDepthAcrossFsms = 5;
 
     /// <summary>The instance whose hooks are registered, for the static hook methods.</summary>
     private static ArenaWait? _instance;
@@ -467,7 +471,10 @@ internal class ArenaWait {
                 continue;
             }
 
-            return StartsBattleWithin(fsm, to, StartSearchDepth) ? GetZoneArena(zone) : null;
+            // Inside a boss encounter, a trigger may start the fight through other FSMs (first Bell Beast fight)
+            var acrossFsms = EncounterTracker.FindBossEncounterAt(zone.transform.position) != null;
+            var depth = acrossFsms ? StartSearchDepthAcrossFsms : StartSearchDepth;
+            return StartsBattleWithin(fsm, to, depth, acrossFsms) ? GetZoneArena(zone) : null;
         }
 
         return null;
@@ -493,16 +500,26 @@ internal class ArenaWait {
 
     /// <summary>
     /// Whether the state, or a state reached from it through <c>FINISHED</c> within the given depth, starts a battle.
+    /// With <paramref name="acrossFsms"/>, the events it sends to other FSMs are followed as well (the state they
+    /// lead to in the target FSM, from its current state or a global transition).
     /// </summary>
-    private static bool StartsBattleWithin(PmFsm fsm, FsmState state, int depth) {
+    private static bool StartsBattleWithin(PmFsm fsm, FsmState state, int depth, bool acrossFsms) {
         foreach (var action in state.Actions) {
-            var sentEvent = action switch {
-                SendEventByName a => a.sendEvent?.Value,
-                SendEventByNameV2 a => a.sendEvent?.Value,
-                SendEventByNameV3 a => a.sendEvent?.Value,
-                _ => null
+            var (sentEvent, target) = action switch {
+                SendEventByName a => (a.sendEvent?.Value, a.eventTarget),
+                SendEventByNameV2 a => (a.sendEvent?.Value, a.eventTarget),
+                SendEventByNameV3 a => (a.sendEvent?.Value, a.eventTarget),
+                _ => (null, null)
             };
-            if (sentEvent != null && BattleStartEvents.Contains(sentEvent)) {
+            if (sentEvent == null) {
+                continue;
+            }
+
+            if (BattleStartEvents.Contains(sentEvent)) {
+                return true;
+            }
+
+            if (acrossFsms && depth > 1 && target != null && SentEventStartsBattle(fsm, target, sentEvent, depth - 1)) {
                 return true;
             }
         }
@@ -517,8 +534,46 @@ internal class ArenaWait {
 
         foreach (var next in state.Transitions) {
             if (next.EventName == "FINISHED" && next.ToFsmState != null && next.ToFsmState != state &&
-                StartsBattleWithin(fsm, next.ToFsmState, depth - 1)) {
+                StartsBattleWithin(fsm, next.ToFsmState, depth - 1, acrossFsms)) {
                 return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Whether an event sent to the FSMs of a game object leads one of them into a state that starts a battle.
+    /// </summary>
+    private static bool SentEventStartsBattle(PmFsm fsm, FsmEventTarget target, string eventName, int depth) {
+        if (target.target != FsmEventTarget.EventTarget.GameObject &&
+            target.target != FsmEventTarget.EventTarget.GameObjectFSM) {
+            return false;
+        }
+
+        var targetObject = fsm.GetOwnerDefaultTarget(target.gameObject);
+        if (targetObject == null) {
+            return false;
+        }
+
+        foreach (var component in targetObject.GetComponents<PlayMakerFSM>()) {
+            var targetFsm = component != null ? component.Fsm : null;
+            if (targetFsm == null || targetFsm == fsm ||
+                target.target == FsmEventTarget.EventTarget.GameObjectFSM &&
+                component!.FsmName != target.fsmName?.Value) {
+                continue;
+            }
+
+            var transitions = targetFsm.GlobalTransitions.AsEnumerable();
+            if (targetFsm.ActiveState != null) {
+                transitions = transitions.Concat(targetFsm.ActiveState.Transitions);
+            }
+
+            foreach (var transition in transitions) {
+                if (transition.EventName == eventName && transition.ToFsmState != null &&
+                    StartsBattleWithin(targetFsm, transition.ToFsmState, depth, true)) {
+                    return true;
+                }
             }
         }
 
