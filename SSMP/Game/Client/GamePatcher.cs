@@ -201,6 +201,7 @@ internal partial class GamePatcher {
         AddHook(typeof(Breakable), nameof(Breakable.Hit), BreakableOnHitDiagnostic);
         AddHook(typeof(BattleScene), nameof(BattleScene.StartBattle), BattleSceneOnStartBattleDiagnostic);
         AddHook(typeof(BattleScene), nameof(BattleScene.DoEndBattle), BattleSceneOnDoEndBattleDiagnostic);
+        AddHook(typeof(BattleScene), "OnTriggerEnter2D", BattleSceneOnTriggerEnter2D);
         AddHook(typeof(CameraManagerReference), nameof(CameraManagerReference.DoShake), CameraManagerReferenceOnDoShake);
         AddHook(
             typeof(CameraManagerReference),

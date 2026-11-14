@@ -1486,8 +1486,7 @@
     "type": "MossMother",
     "parent_name": null,
     "components": [
-      "Rotation",
-      "Music"
+      "Rotation"
     ],
     "internal_name": "Mossbone Mother",
     "fsm_names": [

@@ -57,10 +57,10 @@ internal class MusicComponent : EntityComponent {
     #region Static lifecycle state
 
     /// <summary>
-    /// The singleton instance of MusicComponent to ensure we only have one MusicComponent responsible for
-    /// synchronising music in a scene.
+    /// The live instances, one per entity whose FSMs play music (bosses). Each one only sends the music of its own
+    /// entity's FSMs.
     /// </summary>
-    private static MusicComponent? _instance;
+    private static readonly List<MusicComponent> Instances = [];
 
     /// <summary>
     /// Hook for intercepting PlayMakerFSM.OnEnable to resolve music cue and snapshot references.
@@ -132,41 +132,82 @@ internal class MusicComponent : EntityComponent {
     ) : base(netClient, entityId, gameObject) {
         CustomHooks.ApplyMusicCueFromFsmAction += OnApplyMusicCue;
         CustomHooks.TransitionToAudioSnapshotFromFsmAction += OnTransitionToAudioSnapshot;
+        Instances.Add(this);
     }
 
     #endregion
 
-    #region Singleton management
+    #region Instance management
 
     /// <summary>
-    /// Creates the singleton instance. Returns false and sets <paramref name="component" /> to null
-    /// if one already exists.
+    /// Creates an instance for an entity (the <c>Music</c> component of the entity registry).
     /// </summary>
     /// <param name="netClient">The NetClient instance for networking data.</param>
     /// <param name="entityId">The entity ID that this component is attached to.</param>
     /// <param name="gameObject">The host-client pair of game objects of the entity.</param>
-    /// <param name="component">The created instance of MusicComponent if successful, otherwise null.</param>
-    /// <returns>True if a new component could be created, false if a component already existed.</returns>
+    /// <param name="component">The created instance of MusicComponent.</param>
+    /// <returns>Always true.</returns>
     public static bool TryCreateInstance(
         NetClient netClient,
         ushort entityId,
         HostClientPair<GameObject> gameObject,
         out MusicComponent? component
     ) {
-        if (_instance != null) {
-            component = null;
-            return false;
-        }
-
-        _instance = new MusicComponent(netClient, entityId, gameObject);
-        component = _instance;
+        component = new MusicComponent(netClient, entityId, gameObject);
         return true;
     }
 
     /// <summary>
-    /// Clear the current singleton instance of the component.
+    /// Whether one of the given FSMs plays music (an <c>ApplyMusicCue</c> action), like the FSM of most bosses. Such
+    /// entities get a MusicComponent without having to list it in the entity registry.
     /// </summary>
-    public static void ClearInstance() => _instance = null;
+    public static bool HasMusicAction(IEnumerable<PlayMakerFSM> fsms) {
+        foreach (var fsm in fsms) {
+            if (fsm == null) {
+                continue;
+            }
+
+            foreach (var state in fsm.FsmStates) {
+                foreach (var action in state.Actions) {
+                    if (action is ApplyMusicCue) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Forgets all instances, after their entities were destroyed on a scene change.
+    /// </summary>
+    public static void ClearInstance() => Instances.Clear();
+
+    /// <summary>
+    /// On the scene host, at the end of a battle: replaces the music stored by the server with "none", so a player
+    /// entering the scene after the battle does not get the boss music.
+    /// </summary>
+    public static void ResetHostMusic() {
+        foreach (var instance in Instances) {
+            if (instance.IsControlled || instance._lastMusicCueIndex == 0 && instance._lastSnapshotIndex == 0) {
+                continue;
+            }
+
+            Logger.Info("Battle ended, clearing the stored boss music");
+            instance._lastMusicCueIndex = 0;
+            instance._lastSnapshotIndex = 0;
+            instance.SendMusicPacket(0, 0);
+        }
+    }
+
+    /// <summary>
+    /// Whether the FSM action belongs to this entity: its host object or one of its children.
+    /// </summary>
+    private bool IsOwnFsm(GameObject fsmObject) {
+        var host = GameObject.Host;
+        return host != null && fsmObject != null && fsmObject.transform.IsChildOf(host.transform);
+    }
 
     #endregion
 
@@ -210,6 +251,7 @@ internal class MusicComponent : EntityComponent {
     public override void Destroy() {
         CustomHooks.ApplyMusicCueFromFsmAction -= OnApplyMusicCue;
         CustomHooks.TransitionToAudioSnapshotFromFsmAction -= OnTransitionToAudioSnapshot;
+        Instances.Remove(this);
     }
 
     #endregion
@@ -226,10 +268,8 @@ internal class MusicComponent : EntityComponent {
 
         if (IsControlled) return;
 
-        if (IsPersistentObject(action.Fsm.GameObject)) {
-            Logger.Debug("  FSM on a DontDestroyOnLoad object (hero, camera), skipping");
-            return;
-        }
+        // The hook sees every FSM; only send the music of this entity (scene music regions are local to each player)
+        if (!IsOwnFsm(action.Fsm.GameObject)) return;
 
         if (action.musicCue.Value is not MusicCue musicCue) return;
 
@@ -261,11 +301,8 @@ internal class MusicComponent : EntityComponent {
         if (IsControlled) return;
 
         // The hook sees every FSM, including the hero's own ones (e.g. 'Hero Damaged Effects' lowpass when the host
-        // is hit), which live in DontDestroyOnLoad. Those are local to the host and must not reach the clients.
-        if (IsPersistentObject(action.Fsm.GameObject)) {
-            Logger.Debug("  FSM on a DontDestroyOnLoad object (hero, camera), skipping");
-            return;
-        }
+        // is hit). Only the snapshots of this entity's FSMs must reach the clients.
+        if (!IsOwnFsm(action.Fsm.GameObject)) return;
 
         if (action.snapshot.Value is not AudioMixerSnapshot snapshot) return;
 
@@ -278,13 +315,6 @@ internal class MusicComponent : EntityComponent {
 
         SendMusicPacket(_lastMusicCueIndex, snapshotData.Index);
         _lastSnapshotIndex = snapshotData.Index;
-    }
-
-    /// <summary>
-    /// Whether the object lives in DontDestroyOnLoad (hero, camera, managers) instead of the current scene.
-    /// </summary>
-    private static bool IsPersistentObject(GameObject gameObject) {
-        return gameObject != null && gameObject.scene.name == "DontDestroyOnLoad";
     }
 
     /// <summary>
@@ -317,6 +347,15 @@ internal class MusicComponent : EntityComponent {
         var snapshotIndex = data.Packet.ReadByte();
 
         Logger.Debug($"  Received indices - cue: {cueIndex}, snapshot: {snapshotIndex}");
+
+        if (alreadyInSceneUpdate && cueIndex == 0 && snapshotIndex == 0) {
+            // Music cleared by the scene host at the end of the battle: keep the scene's own music
+            return;
+        }
+
+        if (alreadyInSceneUpdate) {
+            Logger.Info("Boss music is playing on the scene host, applying it on entering the scene");
+        }
 
         if (cueIndex != _lastMusicCueIndex) {
             ApplyIndex(cueIndex);

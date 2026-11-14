@@ -28,6 +28,23 @@ internal partial class GamePatcher {
     }
 
     /// <summary>
+    /// Hook for <c>BattleScene.OnTriggerEnter2D</c>: on a scene client, the local hero entering the trigger does not
+    /// start the arena. The scene host's arena rules, through <see cref="Entity.Component.BattleComponent"/>.
+    /// </summary>
+    private static void BattleSceneOnTriggerEnter2D(
+        Action<BattleScene, UnityEngine.Collider2D> orig,
+        BattleScene self,
+        UnityEngine.Collider2D collision
+    ) {
+        if (collision != null && collision.CompareTag("Player") &&
+            Entity.Component.BattleComponent.ShouldIgnoreTrigger(self)) {
+            return;
+        }
+
+        orig(self, collision);
+    }
+
+    /// <summary>
     /// Hook for <see cref="BattleScene.DoEndBattle"/>, called when the last wave is cleared or by
     /// <c>SaveManager</c> when the scene host completed the arena.
     /// </summary>

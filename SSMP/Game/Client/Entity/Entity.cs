@@ -520,6 +520,19 @@ internal class Entity {
         // emerge from the background only take hits once back on the enemy layer)
         _components[EntityComponentType.Layer] = new LayerComponent(_netClient, Id, Object);
 
+        // Entities of an arena: a player entering the scene during the battle gets the gates closed and the camera
+        // locked, and gets them opened when it ends
+        var battleComponent = BattleComponent.TryCreate(_netClient, Id, Object, _fsms.Host);
+        if (battleComponent != null) {
+            _components[EntityComponentType.Battle] = battleComponent;
+        }
+
+        // Entities whose FSM plays music (bosses): the scene host sends it, also to players entering the scene later
+        if (!types.Contains(EntityComponentType.Music) && MusicComponent.HasMusicAction(_fsms.Host)) {
+            MusicComponent.TryCreateInstance(_netClient, Id, Object, out var musicComponent);
+            _components[EntityComponentType.Music] = musicComponent!;
+        }
+
         EntityInitializer.RemoveClientTypes(Object.Client, Type);
 
         // Instantiate all types defined in the entity registry, which are passed to the constructor
