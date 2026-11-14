@@ -21,6 +21,7 @@ joueurs qui se connectent), `SyncType: Player` = propre à chaque joueur.
 | Cartes de zone, plume, épingles, marqueurs (`Has*Map`, `hasQuill`, `QuillState`, `hasPin*`, `hasMarker*`, `mapAllRooms`) | 14/11, nfloch/ssmp-bugs#1 |
 | Compétences acquises : dash, cape, saut mural, double saut, grappin, envol de soie, attaque chargée, parade, Needolin et son amélioration, compétences de soie (`has*`) | 14/11, demande de Papaours |
 | Bancs achetés, péages (machines à péage) | correctifs du 13/11 (SUIVI.md) |
+| Victoires de boss (`defeated*`) | 14/11 (remplace « chacun sa victoire » du 13/11) |
 
 **Compétence acquise en cours de partie** : quand un joueur obtient une compétence normalement, le tutoriel
 d'obtention (l'écran qui présente la compétence et ses touches) s'affiche aussi chez tous les autres joueurs
@@ -28,7 +29,6 @@ connectés (Papaours, 14/11).
 
 | Propre à chaque joueur | Décision |
 |---|---|
-| Victoires de boss (`defeated*`) | 13/11 : « chacun sa victoire » |
 | Vie, soie, position, mort, cocon | base |
 | Améliorations d'aiguille, niveau de soie, emplacements d'outils (`nailUpgrades`, `silkRegenMax`, `UnlockedExtra*Slot`) | à décider |
 | Le reste de PlayerData (quêtes, PNJ, dialogues) : environ 1 200 entrées en `Player` | par défaut, à revoir au cas par cas |
@@ -62,21 +62,33 @@ retrouver l'état actuel de la salle**, pas l'état de départ (Papaours, 14/11 
   `LayerComponent` (nfloch/ssmp-bugs#5).
 - Tout correctif d'une action de combat se pose la question : « et pour celui qui arrive après ? ».
 
-## Boss et arènes
+## Boss et arènes (décision de Papaours du 14/11 : coop de l'histoire)
 
-- Chacun sa victoire, mais **on peut toujours rejoindre un combat en cours** : un joueur mort pendant le combat
-  revient dans l'arène, y est enfermé avec les autres, voit le boss synchronisé, entend la musique, et sort à la
-  fin (13/11, puis 14/11).
-- Le démarrage d'une arène (`BattleScene.StartBattle` / `LockInBattle`) et sa fin sont transmis par l'hôte de salle,
-  quel que soit le boss (nfloch/ssmp-bugs#4). La musique de boss l'est aussi.
-- L'arène suit celle de l'hôte de salle, qu'elle démarre par sa zone de déclenchement ou par le FSM d'un boss
-  (`BattleComponent`, 14/11, nfloch/ssmp-bugs#4 et #2) : chez un client, elle démarre quand celle de l'hôte est en
-  cours et que son héros est dans l'arène, et se termine quand celle de l'hôte se termine. La zone de déclenchement
-  d'un client est ignorée.
-- Règle de jeu actuelle : l'hôte de salle entre le premier dans l'arène. Un client qui y entre avant lui n'est pas
-  enfermé, il attend que l'hôte lance le combat (décision du 13/11 ; conséquence du 14/11 à confirmer par Papaours).
-- Un hôte qui a déjà battu le boss ne l'a plus dans son jeu : le combat d'un autre joueur ne marche pas dans ce cas
-  (piste non faite : laisser ce joueur simuler les ennemis absents chez l'hôte).
+1. **Tous les joueurs connectés doivent être dans l'arène pour qu'elle démarre** (arène à vagues comme boss). Seul
+   en ligne, un joueur la lance normalement.
+   - Tant qu'il manque quelqu'un : les vagues ne partent pas et le boss ne se réveille pas. Les murs d'entrée
+     restent ouverts.
+   - **Les portes qui mènent plus loin restent fermées** si l'arène n'est pas terminée, même avant son démarrage :
+     on ne contourne pas une arène qui bloque la progression.
+   - Message affiché comme un titre de zone (grand texte qui apparaît puis s'efface, petite ligne dessous), quand un
+     joueur est dans l'arène et qu'il manque quelqu'un, dans la langue du jeu :
+     - FR : *Nul fil ne doit être laissé en arrière* / « En attente de : Jojo, KlayFouly »
+     - EN : *No thread shall be left behind* / "Waiting for: Papaours"
+2. **Mort pendant le combat** : pas de vraie mort (ni cocon, ni perte de chapelets). Pendant 20 s, l'écran est grisé,
+   avec un compte à rebours, et la caméra suit un coéquipier encore en vie. Le joueur réapparaît ensuite à côté de
+   l'arène, **dans la même salle** (l'hôte de salle continue de simuler le combat), et peut y rentrer : dans son jeu
+   les murs le laissent passer, puis se ferment derrière lui.
+3. **Tous les joueurs de l'arène morts (ou en attente) en même temps** : vraie mort pour tous, chacun réapparaît à
+   son dernier banc ; le combat est remis à zéro.
+4. **Les monstres sont toujours synchronisés** (hôte de salle).
+5. **Victoires communes** : battre un boss vaut pour tous (`defeated*` en commun). Remplace « chacun sa victoire »
+   du 13/11.
+6. **PV des boss** multipliés par défaut par le nombre de joueurs ; le multiplicateur (nombre à virgule) est
+   réglable.
+7. L'arène suit celle de l'hôte de salle, qu'elle démarre par sa zone de déclenchement ou par le FSM d'un boss
+   (`BattleComponent`, nfloch/ssmp-bugs#4 et #2). Un joueur qui entre en cours de combat retrouve l'état actuel
+   (murs, musique, ennemis).
+8. Mort hors arène : comportement normal du jeu (banc, cocon).
 
 ## Ennemis
 
