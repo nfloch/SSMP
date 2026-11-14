@@ -103,6 +103,13 @@ retrouver l'état actuel de la salle**, pas l'état de départ (Papaours, 14/11 
   jour. Le serveur avertit dans le chat si un joueur n'a pas le même build.
 - Mise à jour depuis le menu du jeu (`SelfUpdater`), ou `tools/jojo/installer-ssmp.ps1`.
 
+## Architecture : pas de correctif sur un correctif
+
+Quand une nouvelle règle ou un nouveau correctif touche une zone déjà corrigée (arènes, morts, synchro de
+sauvegarde…), on reprend la conception de la zone : le code devenu inutile ou redondant est remplacé ou supprimé,
+pas contourné (Papaours, 14/11). Chaque correctif liste l'ancien code qu'il remplace ; après plusieurs correctifs
+dans une même zone, une revue d'architecture de la zone est faite avant d'en ajouter d'autres.
+
 ## Débogage
 
 - F8 ou `/bug` pendant la partie, logs envoyés tout seuls, une issue par bug dans le dépôt privé `nfloch/ssmp-bugs`

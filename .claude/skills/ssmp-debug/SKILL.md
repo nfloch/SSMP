@@ -131,6 +131,9 @@ The agents use the default model. Their prompt (fill in the placeholders):
 > - **Report:** post one comment on the issue with `gh issue comment <issue> -R nfloch/ssmp-bugs`, starting with
 >   "🤖 ", in French: cause,
 >   evidence, confidence, and branch/commit or "pas de correctif". Then return the same report.
+> - **No fix on a fix:** before adding code, look at the existing fixes of the same area (`SUIVI.md`, git log of the
+>   files). If your fix makes earlier code obsolete or redundant, replace or remove it instead of working around it,
+>   and list it in the report under "Ancien code remplacé / devenu inutile / à revoir".
 > - **Never:** push, touch the game install, run `rm -rf`, or edit `SUIVI.md`.
 
 ## 6. Integrate
@@ -138,6 +141,8 @@ The agents use the default model. Their prompt (fill in the placeholders):
 For each finished agent:
 1. Check its evidence against the logs and code. Don't take the report on trust.
 2. Cherry-pick the good commits onto `world-sync`, resolve any conflicts, and build the whole branch.
+   When several fixes of the session touch the same area, review that area's design as a whole after integrating
+   them (remove what became redundant) before reporting.
 3. Comment on the issue `Repris dans nfloch/SSMP@<sha>` and set the label `correctif-pret`.
 4. If the fix is rejected, comment why and leave the issue `nouveau`, or set `sans-suite`.
 5. Add an entry to `SUIVI.md` that links the issue, and commit. When the user takes a design decision (in the chat or
