@@ -497,6 +497,10 @@ internal class SaveManager {
             return;
         }
 
+        if (IsSharedVictory(name, varProps)) {
+            Logger.Info($"[Victory] Sending shared boss flag '{name}' = {PlayerData.instance.GetBool(name)}");
+        }
+
         Func<byte[]> toUseEncodeFunc;
         if (varProps.Additive && deltaEncodeFunc != null) {
             toUseEncodeFunc = deltaEncodeFunc;
@@ -511,6 +515,19 @@ internal class SaveManager {
         _netClient.UpdateManager.SetSaveUpdate(
             index,
             toUseEncodeFunc.Invoke()
+        );
+    }
+
+    /// <summary>
+    /// Whether a PlayerData variable is a boss victory or encounter shared by all players (PRINCIPES.md, "Boss et
+    /// arènes", rule 5): a Server synced boolean whose name says a boss was defeated, killed or encountered. Only
+    /// used for the "[Victory]" logs.
+    /// </summary>
+    private static bool IsSharedVictory(string name, SaveDataMapping.VarProperties varProps) {
+        return varProps.SyncType == SaveDataMapping.SyncType.Server && varProps.VarType == "System.Boolean" && (
+            name.IndexOf("defeated", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            name.IndexOf("encountered", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            name.IndexOf("killed", StringComparison.OrdinalIgnoreCase) >= 0
         );
     }
 
@@ -865,6 +882,15 @@ internal class SaveManager {
                     pd.SetBool(name, decodedBool);
                     if (live && decodedBool && !wasTrue) {
                         _abilityTutorials.OnRemoteBoolAcquired(name);
+                    }
+
+                    if (decodedBool != wasTrue &&
+                        SaveDataMapping.PlayerDataVarProperties.TryGetValue(name, out var victoryProps) &&
+                        IsSharedVictory(name, victoryProps)) {
+                        Logger.Info(
+                            $"[Victory] Shared boss flag '{name}' = {decodedBool} received from the server " +
+                            $"({(live ? "live" : "at login")})"
+                        );
                     }
 
                     break;
