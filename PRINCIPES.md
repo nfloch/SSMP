@@ -22,6 +22,10 @@ joueurs qui se connectent), `SyncType: Player` = propre à chaque joueur.
 | Compétences acquises : dash, cape, saut mural, double saut, grappin, envol de soie, attaque chargée, parade, Needolin et son amélioration, compétences de soie (`has*`) | 14/11, demande de Papaours |
 | Bancs achetés, péages (machines à péage) | correctifs du 13/11 (SUIVI.md) |
 
+**Compétence acquise en cours de partie** : quand un joueur obtient une compétence normalement, le tutoriel
+d'obtention (l'écran qui présente la compétence et ses touches) s'affiche aussi chez tous les autres joueurs
+connectés (Papaours, 14/11).
+
 | Propre à chaque joueur | Décision |
 |---|---|
 | Victoires de boss (`defeated*`) | 13/11 : « chacun sa victoire » |
