@@ -271,8 +271,9 @@ autres peuvent arriver n'importe où et seront repris avec les prochains logs (h
 
 ### Partie du 14/11 00:44, à trois avec KlayFouly, build `7b3cf20` (issues nfloch/ssmp-bugs, à tester)
 
-23. **Logs jamais envoyés** : le Mono d'Unity fait échouer un POST sans contenu (NullReferenceException). Les
-    requêtes Gokapi sans contenu envoient un corps vide (`LogUploader`).
+23. **Logs jamais envoyés** : le formulaire d'envoi était libéré deux fois (par la requête, puis par son `using`), et
+    le Mono d'Unity plante au second `Dispose` (NullReferenceException). Trouvé grâce à la pile complète maintenant
+    écrite dans le log (`LogUploader`).
 24. **(remplacé par `EncounterComponent`, voir 30) Arène et musique de Mossbone Mother absentes chez les clients (#4), alarme de Room_Forge décalée (#2)** :
     l'arène et la musique ne démarraient que chez l'hôte de salle, ou chez chacun via son propre déclencheur.
     `BattleComponent` envoie l'état de l'arène de l'hôte (en cours / terminée, stocké par le serveur) ; un client, y
