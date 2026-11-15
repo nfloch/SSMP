@@ -19,7 +19,7 @@ joueurs qui se connectent), `SyncType: Player` = propre à chaque joueur.
 | Objets du monde : leviers, portes, ponts, coffres, ramassables, rochers de géo (`persistentBoolItems`, `geoRocks`…) | base de world-sync |
 | Salles cartographiées et visitées (`scenesMapped`, `scenesVisited`) | base de world-sync |
 | Cartes de zone, plume, épingles, marqueurs (`Has*Map`, `hasQuill`, `QuillState`, `hasPin*`, `hasMarker*`, `mapAllRooms`) | 14/11, nfloch/ssmp-bugs#1 |
-| Marqueurs posés à la main sur la carte (`placedMarkers`), et donc le nombre restant de chaque type (9 au plus) : une ressource commune | 15/11, nfloch/ssmp-bugs#1 |
+| Marqueurs posés à la main sur la carte (`placedMarkers`), et donc le nombre restant de chaque type (9 au plus) : une ressource commune ; si deux joueurs posent en même temps le dernier marqueur d'un type, un seul est gardé, le même chez tous | 15/11, nfloch/ssmp-bugs#1 |
 | Compétences acquises : dash, cape, saut mural, double saut, grappin, envol de soie, attaque chargée, parade, Needolin et son amélioration, compétences de soie (`has*`) | 14/11, demande de Papaours |
 | Bancs achetés, péages (machines à péage) | correctifs du 13/11 (SUIVI.md) |
 | Victoires de boss (`defeated*`) | 14/11 (remplace « chacun sa victoire » du 13/11) |
