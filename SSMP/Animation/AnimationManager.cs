@@ -761,6 +761,27 @@ internal class AnimationManager {
     /// </summary>
     private readonly List<byte> _runeRagePositions = [];
 
+    /// <summary>
+    /// The hero whose FSMs, children and components carry our animation hooks, null while they are not created yet.
+    /// A new hero (menu then load) compares different (or null once the old one is destroyed), so it gets its own.
+    /// </summary>
+    private HeroController? _hookedHero;
+
+    /// <summary>
+    /// The hero the hook creation was last tried on, and how many times, for the logs.
+    /// </summary>
+    private HeroController? _heroHookAttemptHero;
+    private int _heroHookAttempts;
+
+    /// <summary>
+    /// The FSM states the hero hooks inject into, by FSM. The hooks are only created once all of them exist.
+    /// </summary>
+    private static readonly string[] SilkSkillHookStates = [
+        "Extend", "Build Enemy Array", "Blast Enemy", "Random Blasts", "Silk Bomb Recover", "BossNeedle Cast"
+    ];
+    private static readonly string[] ToolHookStates = ["Flea Brew Burst"];
+    private static readonly string[] BindHookStates = ["Witch Tentancles!", "Shaman Air Cancel", "Remove Silk?"];
+
     // /// <summary>
     // /// Whether the player has sent that they stopped crystal dashing.
     // /// </summary>
@@ -841,11 +862,14 @@ internal class AnimationManager {
 
         EventHooks.HeroControllerDie += OnDeath;
 
-        // Register FSM hooks for certain bind actions
-        HeroController.OnHeroInstanceSet += CreateHeroHooks;
-        if (HeroController.SilentInstance != null) {
-            CreateHeroHooks(HeroController.instance);
-        }
+        // Hero hooks (silk skills, tools, bind, bench): tried as soon as the hero is known, then again when it starts
+        // and on each scene change if it was not ready yet (read very early by another mod, nfloch/ssmp-bugs#15)
+        HeroController.OnHeroInstanceSet += TryCreateHeroHooks;
+        // (also runs right away if the hero already exists)
+        CustomHooks.HeroControllerStartAction += TryCreateHeroHooksOnCurrentHero;
+
+        // Static game event: subscribed once here, not per hero
+        ToolItemManager.BoundAttackToolUsed += AttackToolUsed;
 
         EventHooks.UseLavaBell += OnMagmaBell;
 
@@ -870,10 +894,12 @@ internal class AnimationManager {
     public void DeregisterHooks() {
         SceneManager.activeSceneChanged -= OnSceneChange;
 
-        HeroController.OnHeroInstanceSet -= CreateHeroHooks;
+        HeroController.OnHeroInstanceSet -= TryCreateHeroHooks;
+        CustomHooks.HeroControllerStartAction -= TryCreateHeroHooksOnCurrentHero;
         FsmStateActionInjector.UninjectAll();
 
         MagnetiteDice.Unhook();
+        MagmaBell.UnhookRecharge();
 
         EventHooks.HeroControllerDie -= OnDeath;
         EventHooks.UseLavaBell -= OnMagmaBell;
@@ -881,11 +907,18 @@ internal class AnimationManager {
         ToolItemManager.BoundAttackToolUsed -= AttackToolUsed;
 
         // Remove listener for benching
-        var eventRegister = HeroController.SilentInstance?.gameObject.GetComponents<EventRegister>().FirstOrDefault(r => r.SubscribedEvent == "BENCHREST START");
-        if (eventRegister) {
-            eventRegister.ReceivedEvent -= OnBench;
+        if (_hookedHero != null) {
+            var eventRegister = GetBenchEventRegister(_hookedHero);
+            if (eventRegister) {
+                eventRegister!.ReceivedEvent -= OnBench;
+            }
         }
-        
+
+        // Registering again creates all hero hooks again
+        _hookedHero = null;
+        _heroHookAttemptHero = null;
+        _heroHookAttempts = 0;
+
         // On.HeroAnimationController.Play -= HeroAnimationControllerOnPlay;
         // On.HeroAnimationController.PlayFromFrame -= HeroAnimationControllerOnPlayFromFrame;
 
@@ -1043,6 +1076,9 @@ internal class AnimationManager {
     private void OnSceneChange(Scene oldScene, Scene newScene) {
         // A scene change occurs, so we can send again
         _stopSendingAnimationUntilSceneChange = false;
+
+        // Last retry point for the hero hooks, if the hero was still not ready when it started
+        TryCreateHeroHooksOnCurrentHero();
     }
 
     /// <summary>
@@ -1144,52 +1180,122 @@ internal class AnimationManager {
     }
 
     /// <summary>
-    /// Creates hooks for the Witch Tentacles and Shaman Cancel states in
-    /// the Bind fsm once the HeroController is ready.
+    /// Retry point for the hero hooks on the current hero (its Start, scene changes). Uses the unsafe instance so it
+    /// never searches for the hero itself.
     /// </summary>
-    private void CreateHeroHooks(HeroController hc) {
-        // Called from HeroController.instance the first time it is read, possibly by another mod and very early (the
-        // opening sequence of a new game): an exception here would escape that getter and leave the hero half set up
-        try {
-            CreateHeroHooksUnsafe(hc);
-        } catch (System.Exception e) {
-            Logger.Error($"Could not create the hero animation hooks: {e}");
+    private void TryCreateHeroHooksOnCurrentHero() {
+        var hc = HeroController.UnsafeInstance;
+        if (hc != null) {
+            TryCreateHeroHooks(hc);
         }
     }
 
-    private void CreateHeroHooksUnsafe(HeroController hc) {
+    /// <summary>
+    /// Creates the hero hooks (silk skills, tools, bind, bench) exactly once per hero, as soon as the hero is ready.
+    /// Called from HeroController.OnHeroInstanceSet, which runs in the HeroController.instance getter the first time
+    /// it is read: possibly by another mod and very early (HornetCloakColor in the opening sequence of a new game),
+    /// before the hero FSMs have their states. In that case nothing is created and the next call (hero Start, scene
+    /// change) tries again. Never throws, so it cannot break that getter.
+    /// </summary>
+    private void TryCreateHeroHooks(HeroController hc) {
+        // Unity equality: a destroyed hero compares to null, so a new hero gets its own hooks
+        if (hc == null || _hookedHero == hc) {
+            return;
+        }
+
+        if (_heroHookAttemptHero != hc) {
+            _heroHookAttemptHero = hc;
+            _heroHookAttempts = 0;
+        }
+
+        _heroHookAttempts++;
+
+        try {
+            var missing = GetMissingHeroHookStates(hc);
+            if (missing != null) {
+                Logger.Info(
+                    $"Hero not ready for the animation hooks, retrying later (attempt {_heroHookAttempts}, missing: {missing})"
+                );
+                return;
+            }
+
+            // Marked before creating: an unexpected error below must not make a later retry hook things twice
+            _hookedHero = hc;
+            CreateHeroHooks(hc);
+            Logger.Info($"Created the hero animation hooks (attempt {_heroHookAttempts})");
+        } catch (System.Exception e) {
+            Logger.Error($"Could not create the hero animation hooks (attempt {_heroHookAttempts}): {e}");
+        }
+    }
+
+    /// <summary>
+    /// Checks that every FSM and state the hero hooks inject into exists on the given hero.
+    /// </summary>
+    /// <returns>null if the hero is ready, otherwise a description of what is missing.</returns>
+    private static string? GetMissingHeroHookStates(HeroController hc) {
+        var missing = new List<string>();
+
+        void Check(PlayMakerFSM? fsm, string label, string[] stateNames) {
+            if (fsm == null) {
+                missing.Add($"{label} FSM");
+                return;
+            }
+
+            var states = fsm.FsmStates;
+            foreach (var stateName in stateNames) {
+                if (states == null || states.All(s => s.Name != stateName)) {
+                    missing.Add($"{label}/{stateName}");
+                }
+            }
+        }
+
+        Check(hc.silkSpecialFSM, "Silk Specials", SilkSkillHookStates);
+        Check(hc.toolsFSM, "Tools", ToolHookStates);
+        Check(GetBindFsm(hc), "Bind", BindHookStates);
+
+        if (hc.bellBindFSM == null) {
+            missing.Add("Bell Bind FSM");
+        }
+
+        return missing.Count == 0 ? null : string.Join(", ", missing);
+    }
+
+    private static PlayMakerFSM? GetBindFsm(HeroController hc) =>
+        hc.GetComponents<PlayMakerFSM>().FirstOrDefault(fsm => fsm.FsmName == "Bind");
+
+    private static EventRegister? GetBenchEventRegister(HeroController hc) =>
+        hc.gameObject.GetComponents<EventRegister>().FirstOrDefault(r => r.SubscribedEvent == "BENCHREST START");
+
+    /// <summary>
+    /// Creates the hero hooks on a hero that is ready (see <see cref="GetMissingHeroHookStates"/>). Only called once
+    /// per hero, by <see cref="TryCreateHeroHooks"/>.
+    /// </summary>
+    private void CreateHeroHooks(HeroController hc) {
         // Initialize warding bell FSM if it isn't already.
         // This fills it in with the template
-        var bellFsm = HeroController.instance.bellBindFSM;
+        var bellFsm = hc.bellBindFSM;
         if (!bellFsm.fsm.initialized) {
             bellFsm.Init();
         }
 
-        CreateSkillHooks();
-        CreateToolHooks();
+        CreateSkillHooks(hc);
+        CreateToolHooks(hc);
 
-        // Find bind FSM
-        var heroFsms = hc.GetComponents<PlayMakerFSM>();
+        // Bind FSM states
+        var bindFsm = GetBindFsm(hc)!;
+        var tentacles = bindFsm.GetState("Witch Tentancles!"); // no that's not a typo... at least on my end
+        FsmStateActionInjector.Inject(tentacles, OnWitchTentacles, 4);
 
-        var bindFsm = heroFsms.FirstOrDefault(fsm => fsm.FsmName == "Bind");
-        if (bindFsm != null) {
-            // Find FSM states to inject
-            var tentacles = bindFsm.GetState("Witch Tentancles!"); // no that's not a typo... at least on my end
-            FsmStateActionInjector.Inject(tentacles, OnWitchTentacles, 4);
-        
-            var shamanCancel = bindFsm.GetState("Shaman Air Cancel");
-            FsmStateActionInjector.Inject(shamanCancel, OnShamanCancel);
+        var shamanCancel = bindFsm.GetState("Shaman Air Cancel");
+        FsmStateActionInjector.Inject(shamanCancel, OnShamanCancel);
 
-            var bindInterrupt = bindFsm.GetState("Remove Silk?");
-            FsmStateActionInjector.Inject(bindInterrupt, OnBindInterrupt, 2);
-        } else {
-            Logger.Warn("Unable to find Bind FSM to hook.");
-        }
+        var bindInterrupt = bindFsm.GetState("Remove Silk?");
+        FsmStateActionInjector.Inject(bindInterrupt, OnBindInterrupt, 2);
 
         // Add listener for benching
-        var eventRegister = hc.gameObject.GetComponents<EventRegister>().FirstOrDefault(r => r.SubscribedEvent == "BENCHREST START");
+        var eventRegister = GetBenchEventRegister(hc);
         if (eventRegister) {
-            eventRegister.ReceivedEvent += OnBench;
+            eventRegister!.ReceivedEvent += OnBench;
         }
     }
 
@@ -1238,18 +1344,9 @@ internal class AnimationManager {
     /// <summary>
     /// Creates hooks for silk skills.
     /// </summary>
-    private void CreateSkillHooks() {
-        // Silk skill injections
-        var silkSkillFsm = HeroController.instance.silkSpecialFSM;
-        if (silkSkillFsm == null) {
-            Logger.Warn("Unable to find Silk Skill FSM to hook.");
-            return;
-        }
-
-        // Like the warding bell FSM: when the hero is read very early, its states are not filled in yet
-        if (!silkSkillFsm.fsm.initialized) {
-            silkSkillFsm.Init();
-        }
+    private void CreateSkillHooks(HeroController hc) {
+        // Silk skill injections (the FSM and its states were checked by GetMissingHeroHookStates)
+        var silkSkillFsm = hc.silkSpecialFSM;
 
         // Thread Storm
         var threadStormExtend = silkSkillFsm.GetState("Extend");
@@ -1285,9 +1382,12 @@ internal class AnimationManager {
             nails.AddRange(globalPoolNails);
         }
 
-        // Add injector components to all current instances of nails
+        // Add injector components to all current instances of nails. The nail prefab and the global pool outlive the
+        // hero, so a nail hooked before (previous hero, previous connection) reuses its component instead of a 2nd one
         foreach (var nail in nails) {
-            var injector = nail.AddComponent<FsmActionInjectorComponent>();
+            if (!nail.TryGetComponent<FsmActionInjectorComponent>(out var injector)) {
+                injector = nail.AddComponent<FsmActionInjectorComponent>();
+            }
             List<FsmActionInjectorComponent.Injection> injections = [
                 new() {
                     fsmName = nailFsm.FsmName,
@@ -1510,15 +1610,15 @@ internal class AnimationManager {
     /// <summary>
     /// Creates hooks for tools.
     /// </summary>
-    private void CreateToolHooks() {
+    private void CreateToolHooks(HeroController hc) {
         MagnetiteDice.Hook(OnDiceEnable);
         MagmaBell.HookRecharge(OnMagmaBellRecharge);
 
-        var toolFsm = HeroController.instance.toolsFSM;
+        var toolFsm = hc.toolsFSM;
         var brewBurst = toolFsm.GetState("Flea Brew Burst");
         FsmStateActionInjector.Inject(brewBurst, OnFleaBrew, 0, "Flea Brew");
 
-        var maskFsm = HeroController.instance.gameObject
+        var maskFsm = hc.gameObject
             .FindGameObjectInChildren("Charm Effects")?
             .FindGameObjectInChildren("Fractured Mask Break")?
             .LocateMyFSM("Spawn Effect");
@@ -1527,8 +1627,6 @@ internal class AnimationManager {
             var maskEffect = maskFsm.GetState("Instantiate Effect");
             FsmStateActionInjector.Inject(maskEffect, OnFracturedMaskBreak, 0, "Fractured Mask Break");
         }
-
-        ToolItemManager.BoundAttackToolUsed += AttackToolUsed;
     }
 
     /// <summary>

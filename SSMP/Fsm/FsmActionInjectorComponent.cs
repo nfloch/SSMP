@@ -49,8 +49,10 @@ internal class FsmActionInjectorComponent : MonoBehaviour {
         _injections = injections;
         injectionIndex = AllInjections.Count + 1;
 
-        // Add to static collection of injections and inject
+        // Add to static collection of injections and inject. Setting them again (hooks registered again after
+        // FsmStateActionInjector.UninjectAll) injects again: an injection still in place is replaced, not doubled
         AllInjections.Add(injectionIndex, injections);
+        _injected = false;
         TryDoInjection();
     }
 

@@ -107,4 +107,16 @@ internal class MagmaBell : AnimationEffect {
 
         MonoBehaviourUtil.Instance.StartCoroutine(DoHook(onTrigger));
     }
+
+    /// <summary>
+    /// Removes the recharge hook from the bell, so registering the hooks again does not add a second one.
+    /// </summary>
+    public static void UnhookRecharge() {
+        var prefab = HeroController.SilentInstance?.spawnedLavaBellRechargeEffect;
+        if (prefab == null) {
+            return;
+        }
+
+        prefab.DestroyComponent<UnityMessageListener>();
+    }
 }
