@@ -303,8 +303,10 @@ autres peuvent arriver n'importe où et seront repris avec les prochains logs (h
     par l'hôte de salle, alors que le dessin au banc dépend du joueur : `IgnoreSceneHost: true`. Au login, les
     valeurs perso gardées par le serveur pour une variable devenue commune ne passent plus devant la valeur commune
     (`ServerSaveData.IsSharedPlayerData`).
-32. **Journal de ciblage (#3)** : `[Target]`, cible choisie par ennemi et distance de chaque joueur, pour trancher
-    la règle de ciblage (en attente de décision).
+32. **Journal de ciblage (#3)** : `[Target]`, cible choisie par ennemi et distance de chaque joueur. Règle actuelle
+    gardée (décision du 15/11), le journal sert à la vérifier.
+33. **Marqueurs posés sur la carte partagés (#1)** : `placedMarkers` ajouté à `InventorySync` (un objet par
+    marqueur, `MapMarkerItems`) et à la copie de connexion ; le nombre restant par type (9) est donc commun.
 - Ces correctifs ajoutent des paquets et des composants réseau : tout le monde doit avoir le même build.
 - Logs : chaque joueur écrit maintenant son inventaire, son équipement et ses capacités (`[Inventory]`) en entrant
   dans la partie et à chaque banc.
