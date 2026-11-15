@@ -45,6 +45,11 @@ autres ; la sauvegarde commune est celle de l'hôte, qui reçoit tout.
 - À décider : PNJ et dialogues liés aux quêtes (encore propres à chacun alors que les quêtes sont communes),
   emplacements de blason débloqués.
 
+## Pause et inventaire
+
+En ligne, ni le menu pause ni l'inventaire ne mettent le monde en pause : le jeu continue autour du joueur, qui peut
+se faire toucher ; en pause, Hornet s'arrête (Papaours, 15/11, nfloch/ssmp-bugs#9).
+
 ## Hôte du serveur, hôte de salle
 
 - L'hôte du serveur (Papaours, id 0) garde la sauvegarde commune.
