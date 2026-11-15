@@ -65,6 +65,12 @@ internal class ServerSaveData {
 
         var saveData = new Dictionary<ushort, byte[]>(GlobalSaveData);
         foreach (var data in playerSaveData) {
+            // A variable that became shared (SyncType Server) can still have an old value stored for the player
+            // when it was player specific; the shared value wins
+            if (IsSharedPlayerData(data.Key)) {
+                continue;
+            }
+
             saveData[data.Key] = data.Value;
         }
 
@@ -76,6 +82,14 @@ internal class ServerSaveData {
 
         return currentSave;
     }
+
+    /// <summary>
+    /// Whether the save data index is a PlayerData variable shared by all players (SyncType Server).
+    /// </summary>
+    private static bool IsSharedPlayerData(ushort index) =>
+        SaveDataMapping.Instance.PlayerDataIndices.TryGetValue(index, out var name) &&
+        SaveDataMapping.Instance.PlayerDataVarProperties.TryGetValue(name, out var varProps) &&
+        varProps.SyncType == SaveDataMapping.SyncType.Server;
 
     /// <summary>
     /// Whether the global save data in this instance is for Steel Soul mode.

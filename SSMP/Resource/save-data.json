@@ -7892,21 +7892,21 @@
     "scenesEncounteredBench": {
       "Sync": true,
       "SyncType": "Server",
-      "IgnoreSceneHost": false,
+      "IgnoreSceneHost": true,
       "VarType": "HashSet<string>",
       "Additive": true
     },
     "scenesEncounteredCocoon": {
       "Sync": true,
       "SyncType": "Server",
-      "IgnoreSceneHost": false,
+      "IgnoreSceneHost": true,
       "VarType": "HashSet<string>",
       "Additive": true
     },
     "scenesMapped": {
       "Sync": true,
       "SyncType": "Server",
-      "IgnoreSceneHost": false,
+      "IgnoreSceneHost": true,
       "VarType": "HashSet<string>",
       "Additive": true,
       "InitialValue": [
@@ -7998,7 +7998,7 @@
     "scenesVisited": {
       "Sync": true,
       "SyncType": "Server",
-      "IgnoreSceneHost": false,
+      "IgnoreSceneHost": true,
       "VarType": "HashSet<string>",
       "Additive": true
     },
