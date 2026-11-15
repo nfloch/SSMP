@@ -156,7 +156,83 @@ internal partial class GamePatcher {
             return;
         }
 
-        EnemyApprovedTargets[owner.GetInstanceID()] = target;
+        var ownerId = owner.GetInstanceID();
+        EnemyApprovedTargets.TryGetValue(ownerId, out var previous);
+        EnemyApprovedTargets[ownerId] = target;
+
+        if (previous != target) {
+            LogTargetChange(owner, previous, target);
+        }
+    }
+
+    /// <summary>
+    /// Removes the approved multiplayer target of an enemy, logging the release.
+    /// </summary>
+    /// <param name="owner">The enemy owner.</param>
+    private static void ReleaseEnemyTarget(GameObject owner) {
+        var ownerId = owner.GetInstanceID();
+        if (EnemyApprovedTargets.TryGetValue(ownerId, out var previous)) {
+            EnemyApprovedTargets.Remove(ownerId);
+            LogTargetChange(owner, previous, null);
+        }
+    }
+
+    /// <summary>
+    /// Minimum interval, in seconds, between two <c>[Target]</c> log lines for the same enemy.
+    /// </summary>
+    private const float TargetLogIntervalSeconds = 1f;
+
+    /// <summary>
+    /// Per enemy owner instance ID: time of its last <c>[Target]</c> line and the changes skipped since.
+    /// </summary>
+    private static readonly Dictionary<int, (float time, int skipped)> TargetLogState = new();
+
+    /// <summary>
+    /// Diagnostic (nfloch/ssmp-bugs#3): logs which player an enemy targets and the distance of every tracked player,
+    /// so a session log tells which targeting rule the enemy followed. Rate-limited per enemy.
+    /// </summary>
+    /// <param name="owner">The enemy owner.</param>
+    /// <param name="previous">The previously approved target, if any.</param>
+    /// <param name="target">The new approved target, or null when the enemy lost its target.</param>
+    private static void LogTargetChange(GameObject owner, GameObject? previous, GameObject? target) {
+        var ownerId = owner.GetInstanceID();
+        var now = Time.unscaledTime;
+        if (TargetLogState.TryGetValue(ownerId, out var state) && now - state.time < TargetLogIntervalSeconds) {
+            TargetLogState[ownerId] = (state.time, state.skipped + 1);
+            return;
+        }
+
+        TargetLogState[ownerId] = (now, 0);
+
+        var ownerPosition = (Vector2) owner.transform.position;
+        var distances = new System.Text.StringBuilder();
+        foreach (var player in PlayerTargetRegistry.GetTrackedPlayers()) {
+            var distance = ((Vector2) player.transform.position - ownerPosition).magnitude;
+            distances.Append($" {GetTargetLogName(player)}={distance:0.0}");
+        }
+
+        var skipped = state.skipped > 0 ? $", {state.skipped} change(s) not logged before" : "";
+        Logger.Info(
+            $"[Target] '{owner.name}' at ({ownerPosition.x:0.0}, {ownerPosition.y:0.0}): " +
+            $"{GetTargetLogName(previous)} -> {GetTargetLogName(target)}{skipped}; distances:{distances}"
+        );
+    }
+
+    /// <summary>
+    /// Short name of a target for the <c>[Target]</c> log: "local" for the local hero, the player container name
+    /// ("Player Container &lt;id&gt;") for a remote player.
+    /// </summary>
+    private static string GetTargetLogName(GameObject? target) {
+        if (target == null) {
+            return "none";
+        }
+
+        if (HeroController.instance != null && target == HeroController.instance.gameObject) {
+            return "local";
+        }
+
+        var parent = target.transform.parent;
+        return parent != null ? parent.name : target.name;
     }
 
     /// <summary>
@@ -216,6 +292,7 @@ internal partial class GamePatcher {
     /// </summary>
     private static void ClearTargetCaches() {
         EnemyApprovedTargets.Clear();
+        TargetLogState.Clear();
         TargetOwnerCache.Clear();
     }
 
@@ -784,6 +861,7 @@ internal partial class GamePatcher {
         if (obj == null) return;
         var instanceId = obj.GetInstanceID();
         EnemyApprovedTargets.Remove(instanceId);
+        TargetLogState.Remove(instanceId);
         TargetOwnerCache.Remove(instanceId);
     }
 }

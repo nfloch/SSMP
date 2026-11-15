@@ -323,7 +323,7 @@ internal partial class GamePatcher {
         }
 
         if (owner != null) {
-            EnemyApprovedTargets.Remove(owner.GetInstanceID());
+            ReleaseEnemyTarget(owner);
         }
 
         return null;
