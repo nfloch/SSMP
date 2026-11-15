@@ -330,6 +330,9 @@ autres peuvent arriver n'importe où et seront repris avec les prochains logs (h
     redessinée. `SaveChanges` relance `GameMap.SetupMap` après une donnée de carte reçue (`[MapSync]`).
 42. **Murs et lianes cassés par un client (#10)** : 682 objets cassables passent en `IgnoreSceneHost: true` ; n'importe
     quel joueur les casse pour tous (décision du 15/11).
+43. **Animations des compétences de soie absentes dans une nouvelle partie (#15)** : les crochets d'animation du héros
+    sont réessayés au démarrage du héros et à chaque changement de salle, une seule fois par héros (remplace le
+    try/catch de 25e5381). Logs `Created the hero animation hooks (attempt N)`.
 - Ces correctifs ajoutent des paquets et des composants réseau : tout le monde doit avoir le même build.
 - Logs : chaque joueur écrit maintenant son inventaire, son équipement et ses capacités (`[Inventory]`) en entrant
   dans la partie et à chaque banc.
