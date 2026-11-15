@@ -360,7 +360,14 @@ internal class SaveManager {
             if (fsm) {
                 var fsmBool = fsm.FsmVariables.GetFsmBool("Activated");
                 getCurrentBoolFunc = () => fsmBool.Value;
-                setCurrentBoolAction = value => fsmBool.Value = value;
+                setCurrentBoolAction = value => {
+                    var wasActivated = fsmBool.Value;
+                    fsmBool.Value = value;
+
+                    if (value && !wasActivated) {
+                        ShowFsmActivated(fsm, itemObject.name);
+                    }
+                };
             }
 
             var vinePlatform = itemObject.GetComponent<VinePlatform>();
@@ -455,6 +462,41 @@ internal class SaveManager {
         if (_newGameSave != null && newScene.name != "Menu_Title") {
             ApplySaveData(_newGameSave);
             _newGameSave = null;
+        }
+    }
+
+    /// <summary>
+    /// Shows, while the scene is loaded, that an FSM driven persistent object (breakable vines, such as
+    /// "Moss Vine Cluster" or "One Way VineWall") was activated by another player. Such an FSM only reads its
+    /// "Activated" bool when the scene loads ('Init' state: ACTIVATED goes to the already-done state, FINISHED to
+    /// the waiting state), so setting the bool alone leaves the object intact until the scene is reloaded. The
+    /// FSM is moved to the same already-done state it uses at scene load, and only from its waiting state, so an
+    /// object being hit or animating locally is left alone.
+    /// </summary>
+    /// <param name="fsm">The FSM that holds the "Activated" bool.</param>
+    /// <param name="objectName">The name of the object, for logging.</param>
+    private static void ShowFsmActivated(PlayMakerFSM fsm, string objectName) {
+        foreach (var state in fsm.FsmStates) {
+            var activatedState = state.Transitions.FirstOrDefault(t => t.EventName == "ACTIVATED")?.ToState;
+            var waitingState = state.Transitions.FirstOrDefault(t => t.EventName == "FINISHED")?.ToState;
+            if (string.IsNullOrEmpty(activatedState) || string.IsNullOrEmpty(waitingState)) {
+                continue;
+            }
+
+            if (fsm.ActiveStateName != waitingState) {
+                Logger.Info(
+                    $"Persistent object '{objectName}' activated in the shared save, FSM '{fsm.FsmName}' is in " +
+                    $"'{fsm.ActiveStateName}' (not '{waitingState}'), leaving it"
+                );
+                return;
+            }
+
+            Logger.Info(
+                $"Persistent object '{objectName}' activated in the shared save, FSM '{fsm.FsmName}' " +
+                $"'{waitingState}' -> '{activatedState}'"
+            );
+            fsm.SetState(activatedState);
+            return;
         }
     }
 

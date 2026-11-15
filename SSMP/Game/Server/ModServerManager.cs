@@ -100,7 +100,26 @@ internal class ModServerManager : ServerManager {
 
             // Load remote players' player-specific data from disk for the current profile ID
             var modSavePath = GetModSavePath(global::GameManager.instance.profileID);
-            if (File.Exists(modSavePath)) {
+
+            // The file of the slot is kept when its save is cleared in the game's menu. With a new game in the slot,
+            // it belongs to the game that was replaced: loading it would bring that game's world (broken vines and
+            // walls, opened doors, picked items...) and remote players into the new one. It is not loaded, and a
+            // copy is kept, since the next game save overwrites it.
+            var previousGame = _uiManager.SelectedNewGame && File.Exists(modSavePath);
+            if (previousGame) {
+                var previousGamePath = $"{modSavePath}.previous-game.bak";
+                Logger.Info(
+                    $"New game in slot {(global::GameManager.instance.profileID)}: not loading the remote players' " +
+                    $"save data of the previous game in this slot, copying it to: {previousGamePath}"
+                );
+                try {
+                    File.Copy(modSavePath, previousGamePath, true);
+                } catch (Exception e) {
+                    Logger.Error($"Could not copy the previous game's remote players' save data: {e}");
+                }
+            }
+
+            if (!previousGame && File.Exists(modSavePath)) {
                 try {
                     var json = File.ReadAllText(modSavePath);
                     var modSaveFile = JsonConvert.DeserializeObject<ModSaveFile>(json);

@@ -220,6 +220,13 @@ internal class UiManager : IUiManager {
     private Action<bool>? _saveSlotSelectedAction;
 
     /// <summary>
+    /// Whether the last save slot selected from the multiplayer menu started a new game (true) or continued an
+    /// existing save (false). Read when the server starts as host: data stored for the slot belongs to the game
+    /// that the new game replaced.
+    /// </summary>
+    public bool SelectedNewGame { get; private set; }
+
+    /// <summary>
     /// Whether the save slot selection menu is currently active/opening.
     /// Prevents re-entrancy and duplicate hook registration.
     /// </summary>
@@ -672,22 +679,36 @@ internal class UiManager : IUiManager {
     /// Registers event hooks for save slot selection.
     /// </summary>
     private void RegisterSaveSlotHooks() {
-        EventHooks.GameManagerStartNewGame += OnSaveSlotSelected;
-        EventHooks.GameManagerContinueGame += OnSaveSlotSelected;
+        EventHooks.GameManagerStartNewGame += OnNewGameSelected;
+        EventHooks.GameManagerContinueGame += OnContinueGameSelected;
     }
 
     /// <summary>
     /// Removes save slot event hooks.
     /// </summary>
     private void UnregisterSaveSlotHooks() {
-        EventHooks.GameManagerStartNewGame -= OnSaveSlotSelected;
-        EventHooks.GameManagerContinueGame -= OnSaveSlotSelected;
+        EventHooks.GameManagerStartNewGame -= OnNewGameSelected;
+        EventHooks.GameManagerContinueGame -= OnContinueGameSelected;
     }
+
+    /// <summary>
+    /// Callback for when a new game is started in the selected save slot.
+    /// </summary>
+    private void OnNewGameSelected() => OnSaveSlotSelected(true);
+
+    /// <summary>
+    /// Callback for when the save in the selected save slot is continued.
+    /// </summary>
+    private void OnContinueGameSelected() => OnSaveSlotSelected(false);
 
     /// <summary>
     /// Callback for when a save slot is selected (new game or continue).
     /// </summary>
-    private void OnSaveSlotSelected() => _saveSlotSelectedAction?.Invoke(true);
+    /// <param name="newGame">Whether a new game was started in the slot.</param>
+    private void OnSaveSlotSelected(bool newGame) {
+        SelectedNewGame = newGame;
+        _saveSlotSelectedAction?.Invoke(true);
+    }
 
     #endregion
 
