@@ -79,6 +79,7 @@ internal class ModSettings : IModSettings {
 
     /// <inheritdoc/>
     // ReSharper disable once AutoPropertyCanBeMadeGetOnly.Global
+#pragma warning disable CS9266 // The getter is forced on on purpose, the setter still records the value
     public bool FullSynchronisation {
         // Local build: entity + world sync forced on (no menu exists to turn it on).
         get => true;
@@ -88,6 +89,7 @@ internal class ModSettings : IModSettings {
             ChangedEvent?.Invoke(nameof(FullSynchronisation));
         }
     }
+#pragma warning restore CS9266
 
     /// <summary>
     /// The last used server settings in a hosted server.

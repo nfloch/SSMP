@@ -222,7 +222,7 @@ internal class DownedManager {
         hero.heroBox.HeroBoxOff();
         hero.cState.hazardDeath = true;
         hero.rb2d.linearVelocity = Vector2.zero;
-        hero.rb2d.isKinematic = true;
+        hero.rb2d.bodyType = RigidbodyType2D.Kinematic;
         if (hero.acceptingInput) {
             hero.IgnoreInput();
         }
@@ -430,7 +430,7 @@ internal class DownedManager {
         }
 
         PlayerTargetRegistry.SetUntargetable(hero.gameObject, false);
-        hero.rb2d.isKinematic = false;
+        hero.rb2d.bodyType = RigidbodyType2D.Dynamic;
 
         // Camera back on the hero, hero placed on the ground at the spot, shown, fade in, control given back
         gm.HazardRespawn();

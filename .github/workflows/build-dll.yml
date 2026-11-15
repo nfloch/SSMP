@@ -21,6 +21,8 @@ concurrency:
 env:
   DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: "1"
   DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  # Self-hosted runner: /usr/share/dotnet is not writable, install .NET in the runner home
+  DOTNET_INSTALL_DIR: /home/runner/.dotnet
   DOTNET_NOLOGO: "1"
 
 jobs:
@@ -66,7 +68,7 @@ jobs:
           git push -f origin "refs/tags/$tag"
 
       - name: Publish rolling pre-release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: latest-${{ steps.pkg.outputs.branch }}
           name: SSMP ${{ steps.pkg.outputs.branch }} (dernier build)
