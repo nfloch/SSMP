@@ -54,8 +54,8 @@ internal class ModServerManager : ServerManager {
 
     /// <inheritdoc />
     /// <remarks>
-    /// Copies the host's tools, crests, collectables, quests and journal to the connecting player. The host's
-    /// PlayerData is the common inventory: every player's gains are merged into it live (see
+    /// Copies the host's tools, crests, collectables, quests, journal and placed map markers to the connecting
+    /// player. The host's PlayerData is the common inventory: every player's gains are merged into it live (see
     /// <see cref="InventorySync"/>). The player's own loadout is sent in <c>CurrentSave.PersonalInventory</c>.
     /// </remarks>
     protected override void AddLoginSaveData(Networking.Packet.Data.CurrentSave currentSave) {

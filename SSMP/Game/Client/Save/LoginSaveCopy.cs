@@ -15,7 +15,8 @@ namespace SSMP.Game.Client.Save;
 /// (<c>Sync: false</c> in save-data.json), so without this a remote player would start every session with them
 /// empty. After the login, they are shared live item by item by <see cref="InventorySync"/>, which merges every
 /// player's gains into the host's PlayerData: the copy therefore holds what every player obtained. The personal
-/// part (loadout, ammo) of the player is then applied over it.
+/// part (loadout, ammo) of the player is then applied over it. The map markers placed by hand are shared the same
+/// way: the player gets the host's markers, not their own.
 /// </summary>
 internal static class LoginSaveCopy {
     /// <summary>
@@ -32,7 +33,8 @@ internal static class LoginSaveCopy {
         "MateriumCollected",
         "QuestCompletionData",
         "QuestRumourData",
-        "EnemyJournalKillData"
+        "EnemyJournalKillData",
+        "placedMarkers"
     ];
 
     /// <summary>
@@ -65,7 +67,7 @@ internal static class LoginSaveCopy {
                     continue;
                 }
 
-                var bytes = Compress(JsonUtility.ToJson(value));
+                var bytes = Compress(ToJson(value));
                 if (bytes.Length > ushort.MaxValue) {
                     Logger.Warn($"'{name}' is too large to copy at login ({bytes.Length} bytes)");
                     continue;
@@ -91,10 +93,26 @@ internal static class LoginSaveCopy {
             return;
         }
 
-        var value = JsonUtility.FromJson(Decompress(encodedValue), field.FieldType);
+        var value = FromJson(Decompress(encodedValue), field.FieldType);
         field.SetValue(PlayerData.instance, value);
         Logger.Info($"Applied host copy of '{name}' at login");
     }
+
+    /// <summary>
+    /// A wrapper for the <c>placedMarkers</c> array: <see cref="JsonUtility"/> only serializes objects.
+    /// </summary>
+    [Serializable]
+    private class PlacedMarkersJson {
+        public WrappedVector2List[] Items = [];
+    }
+
+    private static string ToJson(object value) => value is WrappedVector2List[] markers
+        ? JsonUtility.ToJson(new PlacedMarkersJson { Items = markers })
+        : JsonUtility.ToJson(value);
+
+    private static object? FromJson(string json, Type type) => type == typeof(WrappedVector2List[])
+        ? JsonUtility.FromJson<PlacedMarkersJson>(json).Items
+        : JsonUtility.FromJson(json, type);
 
     private static FieldInfo? GetField(string name) =>
         typeof(PlayerData).GetField(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);

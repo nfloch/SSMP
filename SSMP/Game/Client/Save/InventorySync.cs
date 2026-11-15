@@ -12,7 +12,7 @@ namespace SSMP.Game.Client.Save;
 
 /// <summary>
 /// Live sharing of the inventory between players: tools and silk skills, crests, collectables, relics, mementos,
-/// materium, quests, rumours and the hunter's journal.
+/// materium, quests, rumours, the hunter's journal and the map markers placed by hand (<see cref="MapMarkerItems"/>).
 /// <para>
 /// Each game watches these PlayerData structures and sends a change per item (<see cref="InventoryItemUpdate"/>)
 /// when its player gains something. The server relays it to the other players, whose games merge it into their own
@@ -23,7 +23,8 @@ namespace SSMP.Game.Client.Save;
 /// Merge rules: an "obtained" property (unlocked, collected, deposited) is a union and never goes back. A property
 /// that the game can undo (a quest accepted or completed, a tool hidden when replaced or consumed) takes the last
 /// change. Collectable amounts are a shared pool: gains and spending are added up. Journal kills and quest counters
-/// take the maximum, because each game already counts the synced enemies it sees die.
+/// take the maximum, because each game already counts the synced enemies it sees die. A placed map marker takes the
+/// last change: placing and removing both spread.
 /// </para>
 /// <para>
 /// What stays per player (loadout, ammo, "seen" markers) is not sent as item changes. The loadout of a remote
@@ -44,7 +45,8 @@ internal class InventorySync {
         Materium = 5,
         Quests = 6,
         Rumours = 7,
-        Journal = 8
+        Journal = 8,
+        PlacedMarkers = 9
     }
 
     /// <summary>
@@ -696,6 +698,23 @@ internal class InventorySync {
                 if (update.Count > data.Kills) {
                     data.Kills = update.Count;
                     journal.RecordKillData(update.Name, data);
+                }
+            }
+        },
+        // Map markers placed by hand: one item per marker (type and rounded position), placed takes the last change,
+        // so placing and removing both spread. The remaining count of each type follows from the shared lists.
+        new FieldDef {
+            Id = Field.PlacedMarkers,
+            Name = "placedMarkers",
+            BitNames = ["placed"],
+            CountRule = CountRule.None,
+            GetContainer = MapMarkerItems.GetLists,
+            Enumerate = pd => MapMarkerItems.Enumerate(pd)
+                .Select(name => new KeyValuePair<string, ItemState>(name, new ItemState { Flags = Flags(true) })),
+            Get = (pd, name) => new ItemState { Flags = Flags(MapMarkerItems.IsPlaced(pd, name)) },
+            Apply = (pd, update) => {
+                if (Changed(update, 0)) {
+                    MapMarkerItems.Apply(pd, update.Name, Value(update, 0));
                 }
             }
         }
