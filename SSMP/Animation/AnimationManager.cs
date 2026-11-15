@@ -1148,6 +1148,16 @@ internal class AnimationManager {
     /// the Bind fsm once the HeroController is ready.
     /// </summary>
     private void CreateHeroHooks(HeroController hc) {
+        // Called from HeroController.instance the first time it is read, possibly by another mod and very early (the
+        // opening sequence of a new game): an exception here would escape that getter and leave the hero half set up
+        try {
+            CreateHeroHooksUnsafe(hc);
+        } catch (System.Exception e) {
+            Logger.Error($"Could not create the hero animation hooks: {e}");
+        }
+    }
+
+    private void CreateHeroHooksUnsafe(HeroController hc) {
         // Initialize warding bell FSM if it isn't already.
         // This fills it in with the template
         var bellFsm = HeroController.instance.bellBindFSM;
@@ -1234,6 +1244,11 @@ internal class AnimationManager {
         if (silkSkillFsm == null) {
             Logger.Warn("Unable to find Silk Skill FSM to hook.");
             return;
+        }
+
+        // Like the warding bell FSM: when the hero is read very early, its states are not filled in yet
+        if (!silkSkillFsm.fsm.initialized) {
+            silkSkillFsm.Init();
         }
 
         // Thread Storm
