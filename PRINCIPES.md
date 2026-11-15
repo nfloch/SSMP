@@ -60,7 +60,7 @@ retrouver l'état actuel de la salle**, pas l'état de départ (Papaours, 14/11 
 - Les actions FSM ne sont transmises qu'aux joueurs présents au moment où elles se jouent. Tout état durable qui en
   découle (murs d'arène fermés, musique de boss, couche physique d'un ennemi sorti du décor…) doit aussi être envoyé
   comme donnée d'entité stockée par le serveur (type `> Death`, rejouée à l'entrée dans la salle), comme
-  `LayerComponent` (nfloch/ssmp-bugs#5).
+  `VisualStateComponent` : couche, profondeur, teinte et enfants visibles (nfloch/ssmp-bugs#5).
 - Tout correctif d'une action de combat se pose la question : « et pour celui qui arrive après ? ».
 
 ## Boss et arènes (décision de Papaours du 14/11 : coop de l'histoire)

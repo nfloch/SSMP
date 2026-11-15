@@ -316,6 +316,13 @@ autres peuvent arriver n'importe où et seront repris avec les prochains logs (h
 36. **Mise à jour en jeu** : erreur complète dans le log, nouvel essai, puis téléchargement par PowerShell.
 37. **Warnings** : `bodyType` au lieu d'`isKinematic`, action de publication v3 ; les 23 restants viennent du projet
     d'origine.
+38. **Lianes cassées et baie de mousse ramassée dès le début chez Jojo (#10, #11, sans doute #12)** : une nouvelle
+    partie rechargeait le monde des joueurs distants de l'ancienne partie du même emplacement (`user<N>.modsav`) ;
+    il n'est plus chargé (copie `.previous-game.bak`). Un objet à FSM reçu comme activé passe tout de suite à son
+    état « déjà fait » (`SaveManager.ShowFsmActivated`).
+39. **Ennemi resté à l'arrière-plan à Bone_01 (#5, rouvert)** : la profondeur Z venait de l'objet hôte inactif chez
+    le client. `VisualStateComponent` remplace `LayerComponent` et `ZPositionComponent` : couche, Z, teinte et
+    enfants actifs, envoyés aussi à la prise d'hôte ; F8 affiche `z=` et `color=`.
 - Ces correctifs ajoutent des paquets et des composants réseau : tout le monde doit avoir le même build.
 - Logs : chaque joueur écrit maintenant son inventaire, son équipement et ses capacités (`[Inventory]`) en entrant
   dans la partie et à chaque banc.
