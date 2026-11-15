@@ -328,6 +328,8 @@ autres peuvent arriver n'importe où et seront repris avec les prochains logs (h
     `[Pause]`.
 41. **Carte achetée par un autre joueur pas affichée (#14)** : la valeur arrivait, mais la carte n'était pas
     redessinée. `SaveChanges` relance `GameMap.SetupMap` après une donnée de carte reçue (`[MapSync]`).
+42. **Murs et lianes cassés par un client (#10)** : 682 objets cassables passent en `IgnoreSceneHost: true` ; n'importe
+    quel joueur les casse pour tous (décision du 15/11).
 - Ces correctifs ajoutent des paquets et des composants réseau : tout le monde doit avoir le même build.
 - Logs : chaque joueur écrit maintenant son inventaire, son équipement et ses capacités (`[Inventory]`) en entrant
   dans la partie et à chaque banc.

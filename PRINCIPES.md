@@ -17,6 +17,7 @@ joueurs qui se connectent), `SyncType: Player` = propre à chaque joueur.
 | Commun à tous | Décision |
 |---|---|
 | Objets du monde : leviers, portes, ponts, coffres, ramassables, rochers de géo (`persistentBoolItems`, `geoRocks`…) | base de world-sync |
+| Lianes, murs et objets cassables : **n'importe quel joueur** les casse pour tous, même sans être l'hôte de salle | 15/11, nfloch/ssmp-bugs#10 |
 | Salles cartographiées et visitées (`scenesMapped`, `scenesVisited`) | base de world-sync |
 | Cartes de zone, plume, épingles, marqueurs (`Has*Map`, `hasQuill`, `QuillState`, `hasPin*`, `hasMarker*`, `mapAllRooms`) | 14/11, nfloch/ssmp-bugs#1 |
 | Marqueurs posés à la main sur la carte (`placedMarkers`), et donc le nombre restant de chaque type (9 au plus) : une ressource commune ; si deux joueurs posent en même temps le dernier marqueur d'un type, un seul est gardé, le même chez tous | 15/11, nfloch/ssmp-bugs#1 |
