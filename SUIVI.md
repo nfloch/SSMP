@@ -298,6 +298,13 @@ autres peuvent arriver n'importe où et seront repris avec les prochains logs (h
     rencontre en cours (`Encounter`, `EncounterTracker`, `EncounterComponent`, arènes `BattleScene` et boss à murs
     comme Bell Beast). Architecture : `docs/arenes.md`. Logs `[Encounter]`, `[ArenaWait]`, `[Downed]`, `[BossHp]`,
     `[Victory]`.
+31. **Salles de la carte perdues et anciennes cartes perso prioritaires (#1, avec le log de Jojo)** :
+    `scenesMapped`, `scenesVisited`, `scenesEncounteredBench` et `scenesEncounteredCocoon` n'étaient envoyés que
+    par l'hôte de salle, alors que le dessin au banc dépend du joueur : `IgnoreSceneHost: true`. Au login, les
+    valeurs perso gardées par le serveur pour une variable devenue commune ne passent plus devant la valeur commune
+    (`ServerSaveData.IsSharedPlayerData`).
+32. **Journal de ciblage (#3)** : `[Target]`, cible choisie par ennemi et distance de chaque joueur, pour trancher
+    la règle de ciblage (en attente de décision).
 - Ces correctifs ajoutent des paquets et des composants réseau : tout le monde doit avoir le même build.
 - Logs : chaque joueur écrit maintenant son inventaire, son équipement et ses capacités (`[Inventory]`) en entrant
   dans la partie et à chaque banc.
