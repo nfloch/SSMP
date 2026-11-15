@@ -323,6 +323,11 @@ autres peuvent arriver n'importe où et seront repris avec les prochains logs (h
 39. **Ennemi resté à l'arrière-plan à Bone_01 (#5, rouvert)** : la profondeur Z venait de l'objet hôte inactif chez
     le client. `VisualStateComponent` remplace `LayerComponent` et `ZPositionComponent` : couche, Z, teinte et
     enfants actifs, envoyés aussi à la prise d'hôte ; F8 affiche `z=` et `color=`.
+40. **Perso qui glisse en pause et monde figé par l'inventaire (#9)** : en ligne, la pause et l'inventaire gardent le
+    temps à 1 via `TimeManager` (crochet sur `GameManager.SetPausedState`), et Hornet s'arrête en pause. Logs
+    `[Pause]`.
+41. **Carte achetée par un autre joueur pas affichée (#14)** : la valeur arrivait, mais la carte n'était pas
+    redessinée. `SaveChanges` relance `GameMap.SetupMap` après une donnée de carte reçue (`[MapSync]`).
 - Ces correctifs ajoutent des paquets et des composants réseau : tout le monde doit avoir le même build.
 - Logs : chaque joueur écrit maintenant son inventaire, son équipement et ses capacités (`[Inventory]`) en entrant
   dans la partie et à chaque banc.
