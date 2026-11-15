@@ -1,5 +1,7 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using GlobalEnums;
 using SSMP.Util;
 using UnityEngine;
@@ -86,6 +88,19 @@ internal class AbilityTutorials {
     };
 
     /// <summary>
+    /// How long a PowerUpGetMsg or SkillGetMsg may go without its coroutine running before the watchdog considers it
+    /// stopped (an exception in the game's code, or the message disabled), in unscaled seconds. The coroutine runs
+    /// every frame while it waits for the player, and at most a few seconds pass between its animation steps.
+    /// </summary>
+    private const float StallTimeout = 5f;
+
+    /// <summary>
+    /// How long any tutorial may stay on screen before the watchdog closes it, in unscaled seconds. The messages wait
+    /// for the player to press a button, this only ends one that never reacts.
+    /// </summary>
+    private const float MaxShowTime = 120f;
+
+    /// <summary>
     /// The ability flags whose tutorial is waiting for the local player to be free.
     /// </summary>
     private readonly Queue<string> _queue = new();
@@ -96,19 +111,45 @@ internal class AbilityTutorials {
     private string? _showing;
 
     /// <summary>
-    /// The 'UI Msg Get Item' instance on screen, which does not call back when it closes.
+    /// Incremented for each tutorial shown, so a late callback of an earlier message does nothing.
     /// </summary>
-    private GameObject? _itemMsg;
+    private int _generation;
 
     /// <summary>
-    /// The FSM 'Msg Control' of <see cref="_itemMsg"/>.
+    /// The message instance on screen.
+    /// </summary>
+    private GameObject? _msg;
+
+    /// <summary>
+    /// The object given to HeroController.AddInputBlocker for the message on screen.
+    /// </summary>
+    private object? _blocker;
+
+    /// <summary>
+    /// The PowerUpGetMsg or SkillGetMsg on screen, which registers itself as a world rumble preventer and pauses
+    /// pickups and the inventory input while it runs (UIMsgProxy.SetIsInMsg). Null for 'UI Msg Get Item'.
+    /// </summary>
+    private UIMsgProxy? _proxy;
+
+    /// <summary>
+    /// The FSM 'Msg Control' of the 'UI Msg Get Item' on screen, which does not call back when it closes.
     /// </summary>
     private PlayMakerFSM? _itemMsgFsm;
 
     /// <summary>
-    /// The value of PlayerData.isInvincible before the tutorial was shown, restored after it.
+    /// The unscaled time the tutorial on screen was shown, and the last time its coroutine ran.
+    /// </summary>
+    private float _shownAt;
+
+    private float _lastStep;
+
+    /// <summary>
+    /// The values of PlayerData.isInvincible and PlayerData.disablePause before the tutorial was shown, restored
+    /// after it.
     /// </summary>
     private bool _wasInvincible;
+
+    private bool _wasDisablePause;
 
     /// <summary>
     /// The unscaled time since which the local player is free, or null if they are not.
@@ -132,6 +173,10 @@ internal class AbilityTutorials {
     public void DeregisterHooks() {
         MonoBehaviourUtil.Instance.OnUpdateEvent -= OnUpdate;
         SceneManager.activeSceneChanged -= OnSceneChanged;
+
+        if (_showing != null) {
+            EndShowing("SSMP hooks removed", failed: true);
+        }
     }
 
     /// <summary>
@@ -163,7 +208,7 @@ internal class AbilityTutorials {
 
     private void OnUpdate() {
         if (_showing != null) {
-            CheckItemMsgClosed();
+            Watch();
             return;
         }
 
@@ -195,7 +240,7 @@ internal class AbilityTutorials {
             Show(name);
         } catch (Exception e) {
             Logger.Warn($"[AbilityTuto] Could not show tutorial for '{name}':\n{e}");
-            EndShowing();
+            EndShowing("error while showing", failed: true);
         }
     }
 
@@ -238,9 +283,21 @@ internal class AbilityTutorials {
                     return;
                 }
 
-                BeginShowing(name);
-                PowerUpGetMsg.Spawn(_powerUpPrefab, tutorial.PowerUp, EndShowing);
-                Logger.Info($"[AbilityTuto] Shown tutorial for '{name}' (power up {tutorial.PowerUp})");
+                // As PowerUpGetMsg.Spawn, and its callback selects the power up in the inventory
+                PlayerData.instance.InvPaneHasNew = true;
+                var powerUp = tutorial.PowerUp;
+                var shown = ShowUIMsg(name, _powerUpPrefab!, powerUp, () => {
+                    if (Enum.TryParse<InventoryCollectableItemSelectionHelper.SelectionType>(
+                            powerUp.ToString(), out var selection
+                        )) {
+                        InventoryCollectableItemSelectionHelper.LastSelectionUpdate = selection;
+                    }
+                });
+                if (!shown) {
+                    return;
+                }
+
+                Logger.Info($"[AbilityTuto] Shown tutorial for '{name}' (power up {powerUp})");
                 return;
             }
             case Kind.Skill: {
@@ -255,10 +312,16 @@ internal class AbilityTutorials {
                     return;
                 }
 
-                // The message only reads the tool's sprites and texts, it does not need the tool to be unlocked
+                EnsureCrestSlotData();
+
+                // The message only reads the tool's sprites and texts, it does not need the tool to be unlocked.
+                // As SkillGetMsg.Spawn.
                 var unlocked = skill.IsUnlocked;
-                BeginShowing(name);
-                SkillGetMsg.Spawn(_skillPrefab, skill, EndShowing);
+                PlayerData.instance.ToolPaneHasNew = true;
+                if (!ShowUIMsg(name, _skillPrefab!, skill, null)) {
+                    return;
+                }
+
                 Logger.Info(
                     $"[AbilityTuto] Shown tutorial for '{name}' (silk skill '{tutorial.Name}', " +
                     $"tool unlocked locally: {unlocked})"
@@ -281,8 +344,103 @@ internal class AbilityTutorials {
     }
 
     /// <summary>
+    /// SkillGetMsg.Setup reads the equipped tools of the current crest (to show where the skill goes) without
+    /// checking that the crest has slot data. A crest on which nothing was ever equipped has none: the game's
+    /// shrines and NPCs equip the skill (action 'AutoEquipTool') before spawning the message, so the game never hits
+    /// it, but a player who receives the skill from another player does. An empty slot list means the same as no
+    /// slot data: nothing equipped.
+    /// </summary>
+    private static void EnsureCrestSlotData() {
+        var crestId = PlayerData.instance.CurrentCrestID;
+        var crest = ToolItemManager.GetCrestByName(crestId);
+        if (!crest) {
+            return;
+        }
+
+        var data = crest.SaveData;
+        if (data.Slots != null) {
+            return;
+        }
+
+        data.Slots = [];
+        crest.SaveData = data;
+        Logger.Info($"[AbilityTuto] Crest '{crestId}' had no slot data, set an empty one for the silk skill message");
+    }
+
+    /// <summary>
+    /// Shows a PowerUpGetMsg or SkillGetMsg as their Spawn methods do (UIMsgBase.Spawn, then the HUD hidden and the
+    /// hero's input blocked), but runs the game's coroutine 'DoMsg' inside <see cref="RunGuarded"/>, which notices
+    /// when it throws: started by the game's Spawn, an exception in the coroutine (as in SkillGetMsg.Setup) was only
+    /// logged by Unity, the message never called back and the hero stayed blocked.
+    /// </summary>
+    /// <returns>Whether the message is on screen: its first step, which runs at once, did not fail.</returns>
+    private bool ShowUIMsg<T>(string name, UIMsgBase<T> prefab, T item, Action? onClosed) {
+        var doMsg = typeof(UIMsgBase<T>).GetMethod("DoMsg", BindingFlags.Instance | BindingFlags.NonPublic);
+        if (doMsg == null) {
+            Logger.Warn($"[AbilityTuto] UIMsgBase.DoMsg not found, skipping tutorial for '{name}'");
+            return false;
+        }
+
+        var msg = Object.Instantiate(prefab);
+        var position = msg.transform.localPosition;
+        msg.transform.localPosition = new Vector3(0f, 0f, position.z);
+
+        var generation = BeginShowing(name, msg.gameObject, msg);
+        _proxy = msg;
+
+        Action afterMsg = () => {
+            if (generation != _generation) {
+                return;
+            }
+
+            try {
+                onClosed?.Invoke();
+            } catch (Exception e) {
+                Logger.Warn($"[AbilityTuto] Error after the tutorial for '{name}' closed:\n{e}");
+            }
+
+            EndShowing("closed by the player", failed: false);
+        };
+
+        var routine = (IEnumerator) doMsg.Invoke(msg, [item, afterMsg]);
+        msg.StartCoroutine(RunGuarded(generation, name, routine));
+        return generation == _generation;
+    }
+
+    /// <summary>
+    /// Runs the game's message coroutine step by step, records that it is alive for the watchdog, and restores
+    /// everything if a step throws.
+    /// </summary>
+    private IEnumerator RunGuarded(int generation, string name, IEnumerator routine) {
+        while (true) {
+            object? current;
+            try {
+                if (!routine.MoveNext()) {
+                    yield break;
+                }
+
+                current = routine.Current;
+            } catch (Exception e) {
+                Logger.Warn($"[AbilityTuto] The game's message for '{name}' failed:\n{e}");
+                if (generation == _generation) {
+                    EndShowing("error in the game's message", failed: true);
+                }
+
+                yield break;
+            }
+
+            if (generation == _generation) {
+                _lastStep = Time.unscaledTime;
+            }
+
+            yield return current;
+        }
+    }
+
+    /// <summary>
     /// Shows 'UI Msg Get Item' as the action 'CreateUIMsgGetItem' and the following 'SetFsmString' do. Unlike the
-    /// two other messages, it neither blocks the hero's input nor hides the HUD: the NPC's FSM around it does.
+    /// two other messages, it neither blocks the hero's input nor hides the HUD: the NPC's FSM around it does, so
+    /// <see cref="BeginShowing"/> does it here.
     /// </summary>
     private void ShowItemMsg(string name, Tutorial tutorial) {
         var msg = Object.Instantiate(_itemPrefab!, Vector3.zero, Quaternion.identity);
@@ -304,69 +462,155 @@ internal class AbilityTutorials {
             iconSet = true;
         }
 
-        BeginShowing(name);
-        _itemMsg = msg;
+        BeginShowing(name, msg, msg);
         _itemMsgFsm = fsm;
-        GameCameras.instance.HUDOut();
-        HeroController.instance.AddInputBlocker(msg);
 
         Logger.Info($"[AbilityTuto] Shown tutorial for '{name}' (item message '{tutorial.Name}', icon set: {iconSet})");
     }
 
     /// <summary>
-    /// The FSM of 'UI Msg Get Item' ends in its state 'Done' (it sends 'GET ITEM MSG END' and hides itself).
+    /// Takes control while the tutorial is on screen: HUD hidden, hero's input blocked, and the hero invincible as the
+    /// shrine makes them during its sequence, since they cannot move. From here, <see cref="EndShowing"/> is
+    /// guaranteed to run: when the message closes, throws, disappears, stops, times out or the scene changes.
     /// </summary>
-    private void CheckItemMsgClosed() {
-        if (_itemMsg == null && _itemMsgFsm is null) {
-            return;
-        }
-
-        if (_itemMsg && _itemMsg!.activeInHierarchy && _itemMsgFsm && _itemMsgFsm!.ActiveStateName != "Done") {
-            return;
-        }
-
-        EndShowing();
-    }
-
-    /// <summary>
-    /// Makes the hero invincible while the tutorial is on screen, as the shrine does during its sequence: the hero
-    /// cannot move while the message blocks input.
-    /// </summary>
-    private void BeginShowing(string name) {
+    /// <returns>The generation of this tutorial.</returns>
+    private int BeginShowing(string name, GameObject msg, object blocker) {
+        _generation++;
         _showing = name;
+        _msg = msg;
+        _blocker = blocker;
+        _proxy = null;
+        _itemMsgFsm = null;
+        _shownAt = _lastStep = Time.unscaledTime;
+
         var pd = PlayerData.instance;
         _wasInvincible = pd.isInvincible;
+        _wasDisablePause = pd.disablePause;
         pd.isInvincible = true;
+
+        GameCameras.instance.HUDOut();
+        HeroController.instance.AddInputBlocker(blocker);
+
+        return _generation;
     }
 
     /// <summary>
-    /// Called when the tutorial is closed (or could not be shown, or was destroyed by a scene change). PowerUpGetMsg
-    /// and SkillGetMsg remove their input blocker themselves, but only bring the HUD back without a callback.
+    /// The watchdog, each frame while a tutorial is shown: ends it when the message is gone, its coroutine stopped
+    /// running, 'UI Msg Get Item' reached its state 'Done', or it has been on screen too long.
     /// </summary>
-    private void EndShowing() {
+    private void Watch() {
+        var now = Time.unscaledTime;
+
+        // 'UI Msg Get Item' hides itself in 'Done'
+        if (_itemMsgFsm && _msg && _itemMsgFsm!.ActiveStateName == "Done") {
+            EndShowing("closed by the player", failed: false);
+            return;
+        }
+
+        if (!_msg || !_msg!.activeInHierarchy) {
+            EndShowing("the message disappeared without closing", failed: true);
+            return;
+        }
+
+        if (_itemMsgFsm is not null) {
+            if (!_itemMsgFsm) {
+                EndShowing("the message lost its FSM", failed: true);
+                return;
+            }
+        } else if (Time.timeScale <= 0f) {
+            // WaitForSeconds does not advance while the game is frozen
+            _lastStep = now;
+        } else if (now - _lastStep > StallTimeout) {
+            EndShowing($"the message stopped running for {StallTimeout:0} s (watchdog)", failed: true);
+            return;
+        }
+
+        if (now - _shownAt > MaxShowTime) {
+            EndShowing($"still on screen after {MaxShowTime:0} s (watchdog)", failed: true);
+        }
+    }
+
+    /// <summary>
+    /// Ends the tutorial on screen and gives everything back: hero's input, HUD, invincibility. When the message did
+    /// not close normally, also undoes what UIMsgProxy.SetIsInMsg(true) did (pause disabled, pickups and inventory
+    /// input paused, world rumble prevented), fades the vibration back in, and destroys the message. Each step is
+    /// guarded so one failing cannot skip the others.
+    /// </summary>
+    /// <param name="reason">Why the tutorial ends, for the log.</param>
+    /// <param name="failed">Whether the message did not close normally.</param>
+    private void EndShowing(string reason, bool failed) {
         if (_showing == null) {
             return;
         }
 
-        Logger.Info($"[AbilityTuto] Tutorial for '{_showing}' closed");
+        var name = _showing;
         _showing = null;
-        PlayerData.instance.isInvincible = _wasInvincible;
+        _generation++;
 
-        if (_itemMsg is not null) {
-            if (HeroController.instance) {
-                HeroController.instance.RemoveInputBlocker(_itemMsg);
-            }
-
-            if (_itemMsg) {
-                Object.Destroy(_itemMsg);
-            }
-
-            _itemMsg = null;
-            _itemMsgFsm = null;
+        if (failed) {
+            Logger.Warn($"[AbilityTuto] Tutorial for '{name}' ended abnormally: {reason}, restoring control");
+        } else {
+            Logger.Info($"[AbilityTuto] Tutorial for '{name}' closed");
         }
 
-        if (GameCameras.instance) {
-            GameCameras.instance.HUDIn();
+        var msg = _msg;
+        var blocker = _blocker;
+        var proxy = _proxy;
+        _msg = null;
+        _blocker = null;
+        _proxy = null;
+        _itemMsgFsm = null;
+
+        var ok = true;
+        void Step(string what, Action action) {
+            try {
+                action();
+            } catch (Exception e) {
+                ok = false;
+                Logger.Warn($"[AbilityTuto] Could not restore {what}:\n{e}");
+            }
+        }
+
+        Step("the hero's input", () => {
+            if (blocker != null && HeroController.instance) {
+                HeroController.instance.RemoveInputBlocker(blocker);
+            }
+        });
+        Step("invincibility", () => PlayerData.instance.isInvincible = _wasInvincible);
+        Step("the HUD", () => {
+            if (GameCameras.instance) {
+                GameCameras.instance.HUDIn();
+            }
+        });
+
+        if (failed) {
+            if (proxy is not null) {
+                Step("the message state", () => {
+                    var cameras = GameCameras.SilentInstance;
+                    if (cameras && cameras.worldRumbleManager) {
+                        cameras.worldRumbleManager.RemovePreventer(proxy);
+                    }
+
+                    CollectableItemPickup.IsPickupPaused = false;
+                    InventoryPaneInput.IsInputBlocked = false;
+                });
+                Step("the vibration", () => VibrationManager.FadeVibration(1f, 0.25f));
+            }
+
+            Step("the pause", () => PlayerData.instance.disablePause = _wasDisablePause);
+        }
+
+        Step("the message", () => {
+            if (msg) {
+                Object.Destroy(msg);
+            }
+        });
+
+        if (failed) {
+            Logger.Info(
+                $"[AbilityTuto] Restored control, HUD and invincibility after the tutorial for '{name}'" +
+                (ok ? "" : " (some steps failed, see above)")
+            );
         }
     }
 
@@ -375,8 +619,7 @@ internal class AbilityTutorials {
     /// </summary>
     private void OnSceneChanged(Scene oldScene, Scene newScene) {
         if (_showing != null) {
-            Logger.Info($"[AbilityTuto] Scene changed while the tutorial for '{_showing}' was shown");
-            EndShowing();
+            EndShowing("the scene changed", failed: true);
         }
     }
 
