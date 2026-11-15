@@ -165,12 +165,9 @@ internal static class SelfUpdater {
             Directory.CreateDirectory(temp);
             var zip = Path.Combine(temp, "ssmp.zip");
 
-            using (var client = CreateClient()) {
-                var bytes = await client.GetByteArrayAsync(
-                    $"https://github.com/{Repository}/releases/download/latest-{Branch}/SSMP-{Branch}.zip"
-                );
-                File.WriteAllBytes(zip, bytes);
-            }
+            await Download(
+                $"https://github.com/{Repository}/releases/download/latest-{Branch}/SSMP-{Branch}.zip", zip
+            );
 
             var extracted = Path.Combine(temp, "x");
             ZipFile.ExtractToDirectory(zip, extracted);
@@ -208,7 +205,7 @@ internal static class SelfUpdater {
             Logger.Info($"[Update] deferred until the game closes, build {Short(zipCommit)}");
             SetState(UpdateState.AppliesOnClose);
         } catch (Exception e) {
-            Logger.Warn($"[Update] Update failed: {e.Message}");
+            Logger.Warn($"[Update] Update failed: {e}");
             SetState(UpdateState.Failed);
         } finally {
             try {
@@ -217,6 +214,45 @@ internal static class SelfUpdater {
                 // Left in the temp folder
             }
         }
+    }
+
+    /// <summary>
+    /// Downloads a file with the game's HttpClient, retrying once, then falls back to Windows' own HTTP stack
+    /// (PowerShell Invoke-WebRequest): Unity's Mono TLS can fail where Windows succeeds (GitHub redirects the release
+    /// download to another host).
+    /// </summary>
+    private static async Task Download(string url, string path) {
+        for (var attempt = 1; attempt <= 2; attempt++) {
+            try {
+                using var client = CreateClient();
+                File.WriteAllBytes(path, await client.GetByteArrayAsync(url));
+                return;
+            } catch (Exception e) {
+                // The full exception, with its inner exceptions: the message alone says nothing
+                Logger.Warn($"[Update] Download attempt {attempt} failed: {e}");
+            }
+        }
+
+        Logger.Info("[Update] Downloading with PowerShell instead");
+        var process = Process.Start(new ProcessStartInfo {
+            FileName = "powershell.exe",
+            Arguments = "-NoProfile -ExecutionPolicy Bypass -Command \"$ProgressPreference='SilentlyContinue'; " +
+                        $"Invoke-WebRequest -UseBasicParsing -Uri '{url}' -OutFile '{path}'\"",
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardError = true
+        });
+        if (process == null) {
+            throw new InvalidOperationException("could not start PowerShell to download the update");
+        }
+
+        var error = await process.StandardError.ReadToEndAsync();
+        await Task.Run(() => process.WaitForExit(120_000));
+        if (!process.HasExited || process.ExitCode != 0 || !File.Exists(path)) {
+            throw new InvalidOperationException($"the PowerShell download failed too: {error.Trim()}");
+        }
+
+        Logger.Info("[Update] Downloaded with PowerShell");
     }
 
     /// <summary>
