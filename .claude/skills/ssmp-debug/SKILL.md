@@ -63,6 +63,25 @@ If the user gave the end-of-session go directly, skip the wait.
    they are. Never take Papaours' log while his game is running: wait with `tools/bugs/attendre-logs.sh jeu-ferme`,
    then send it with `powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(wslpath -w tools/jojo/envoyer-logs.ps1)" -Profil SSMP`.
 
+## 2b. Retest the `a-retester` issues
+
+After each session, before splitting, go through every open issue labelled `a-retester`
+(`gh issue list -R nfloch/ssmp-bugs --label a-retester --state open`). For each one, using the merged logs:
+1. Did the situation happen in this session (scene visited, boss fought, ability gained…)? Find it from the scene
+   changes, markers and the fix's own log prefixes (`[Encounter]`, `[ArenaWait]`, `[Downed]`, `[InvSync]`,
+   `[AbilityTuto]`, `[BossHp]`, `[Victory]`, `[Target]`…; the expected lines are in each fix's comment).
+2. Are the expected lines there for every player, without errors, and did nobody press F8 on it?
+3. Post one short "🤖 **Retest du <date> :**" comment with, per point of the fix:
+   - ✅ verified in the logs;
+   - ❓ to confirm by the user (anything visual or audible: walls, music, screens, messages, map display);
+   - ⏸️ not encountered this session;
+   - ❌ still wrong (link the new issue or folder).
+4. Close the issue (`gh issue close … --reason completed`) only when every point is ✅, saying the user can reopen it.
+   Leave ❓/⏸️ issues open with `a-retester`. On ❌, remove `a-retester` and handle it like a regression (reopen,
+   `rouvert`, agent).
+5. In the final report, list the ❓ points as short yes/no questions so the user answers in one line ("ok", "non",
+   "pas vu"). When he confirms, close the issue.
+
 ## 3. Split per marker
 
 Use the session id from step 2, one `--log <player>=<merged log>` per player of the session (there can be more than
@@ -169,5 +188,5 @@ Then report to the user, one line per issue: cause, status, and link.
 - **When the user asks to push and install:** push to `fork`, wait for the `Build DLL` run, install with
   `tools/jojo/installer-ssmp.ps1 -Profil SSMP`, set `a-retester` on the `correctif-pret` issues, and comment which build
   they are in.
-- **When the user says a bug is fixed in game:** close its issue.
+- **When the user says a bug is fixed in game:** close its issue. Otherwise retesting is done by step 2b at the end of each session.
 - **When the session goes on:** go back to step 1.

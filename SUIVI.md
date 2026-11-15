@@ -307,6 +307,15 @@ autres peuvent arriver n'importe où et seront repris avec les prochains logs (h
     gardée (décision du 15/11), le journal sert à la vérifier.
 33. **Marqueurs posés sur la carte partagés (#1)** : `placedMarkers` ajouté à `InventorySync` (un objet par
     marqueur, `MapMarkerItems`) et à la copie de connexion ; le nombre restant par type (9) est donc commun.
+34. **Écran noir au démarrage d'une nouvelle partie (nfloch/ssmp-bugs#15)** : HornetCloakColor lit le héros pendant la
+    cinématique d'ouverture ; les crochets d'animation de SSMP levaient une exception dans ce getter. Ils ne
+    peuvent plus lever (log `Could not create the hero animation hooks`). Reste : recréer ces crochets plus tard.
+35. **Bloqué sur l'écran du tutoriel d'une compétence de soie (#7)** : le blason sans emplacements faisait planter
+    l'écran du jeu, et rien ne rendait la main. Données d'emplacement vides créées, coroutine protégée et chien de
+    garde qui rend toujours le contrôle (`[AbilityTuto] … ended abnormally`).
+36. **Mise à jour en jeu** : erreur complète dans le log, nouvel essai, puis téléchargement par PowerShell.
+37. **Warnings** : `bodyType` au lieu d'`isKinematic`, action de publication v3 ; les 23 restants viennent du projet
+    d'origine.
 - Ces correctifs ajoutent des paquets et des composants réseau : tout le monde doit avoir le même build.
 - Logs : chaque joueur écrit maintenant son inventaire, son équipement et ses capacités (`[Inventory]`) en entrant
   dans la partie et à chaque banc.
