@@ -110,7 +110,6 @@ internal enum EntityComponentType : ushort {
     MeshRenderer,
     Velocity,
     GravityScale,
-    ZPosition,
     Climber,
     EnemySpawner,
     ChildrenActivation,
@@ -120,6 +119,6 @@ internal enum EntityComponentType : ushort {
     DreamPlatform,
     HazardRespawn,
     Health,
-    Layer,
+    VisualState,
     Encounter
 }

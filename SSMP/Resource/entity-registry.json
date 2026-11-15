@@ -2942,8 +2942,7 @@
     "type": "FourthChorus",
     "parent_name": null,
     "components": [
-      "Rotation",
-      "ZPosition"
+      "Rotation"
     ],
     "internal_name": "Cogwork Golem",
     "fsm_names": [
@@ -3226,8 +3225,7 @@
     "type": "FourthChorus",
     "parent_name": null,
     "components": [
-      "Rotation",
-      "ZPosition"
+      "Rotation"
     ],
     "internal_name": "Song Golem",
     "fsm_names": [

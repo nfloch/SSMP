@@ -33,8 +33,6 @@ internal static class ComponentFactory {
                 return new VelocityComponent(netClient, entityId, objects, GetHost<Rigidbody2D>(objects));
             case EntityComponentType.GravityScale:
                 return new GravityScaleComponent(netClient, entityId, objects, GetHost<Rigidbody2D>(objects));
-            case EntityComponentType.ZPosition:
-                return new ZPositionComponent(netClient, entityId, objects);
             case EntityComponentType.EnemySpawner:
                 return new EnemySpawnerComponent(netClient, entityId, objects, GetPair<EnemySpawner>(objects));
             case EntityComponentType.ChildrenActivation:

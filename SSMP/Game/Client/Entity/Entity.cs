@@ -524,9 +524,9 @@ internal class Entity {
             //addedComponentsString += " MeshRenderer";
         }
 
-        // Every entity: a player entering the scene later must get the layer the scene host's FSM set (enemies that
-        // emerge from the background only take hits once back on the enemy layer)
-        _components[EntityComponentType.Layer] = new LayerComponent(_netClient, Id, Object);
+        // Every entity: layer, Z position, sprite tint and own children as on the scene host, also for a player
+        // entering the scene later (enemies that emerge from the background change all of them through their FSM)
+        _components[EntityComponentType.VisualState] = new VisualStateComponent(_netClient, Id, Object);
 
         // Entities of an encounter (arena enemies, bosses): the scene host's state of the encounter, also for a
         // player entering the scene during the battle (docs/arenes.md)
@@ -1078,10 +1078,15 @@ internal class Entity {
             }
 
             var pos = obj.transform.position;
-            var desc = $"'{obj.name}' active={obj.activeSelf}/{obj.activeInHierarchy} pos=({pos.x:F1}, {pos.y:F1}) layer={obj.layer}";
+            var desc = $"'{obj.name}' active={obj.activeSelf}/{obj.activeInHierarchy} pos=({pos.x:F1}, {pos.y:F1}) z={pos.z:0.###} layer={obj.layer}";
 
             var meshRenderer = obj.GetComponent<MeshRenderer>();
             if (meshRenderer != null) desc += $" mesh={meshRenderer.enabled}";
+            var tk2dSprite = obj.GetComponent<tk2dBaseSprite>();
+            if (tk2dSprite != null) {
+                Color32 color = tk2dSprite.color;
+                desc += $" color=({color.r},{color.g},{color.b},{color.a})";
+            }
             var spriteRenderer = obj.GetComponent<SpriteRenderer>();
             if (spriteRenderer != null) desc += $" sprite={spriteRenderer.enabled}";
             var collider = obj.GetComponent<Collider2D>();

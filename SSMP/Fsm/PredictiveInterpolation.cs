@@ -340,6 +340,24 @@ internal class PredictiveInterpolation : MonoBehaviour {
     }
 
     /// <summary>
+    /// Moves the entity to the given Z position at once, without smoothing or prediction on Z. Position packets only
+    /// carry X and Y, so Z is set apart (an enemy coming out of the background).
+    /// </summary>
+    /// <param name="z">The new Z position.</param>
+    public void SnapZ(float z) {
+        EnsureTransformCached();
+
+        _lastServerPosition.z = z;
+        _logicalPosition.z = z;
+        _velocity.z = 0f;
+        _visualOffset.z = 0f;
+        _visualOffsetVelocity.z = 0f;
+
+        var position = _cachedTransform.position;
+        _cachedTransform.position = new Vector3(position.x, position.y, z);
+    }
+
+    /// <summary>
     /// Sets whether prediction should be enabled.
     /// </summary>
     /// <param name="shouldEnable">True if prediction should be enabled, otherwise false.</param>

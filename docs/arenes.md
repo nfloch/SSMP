@@ -39,7 +39,7 @@ Un boss sans arène ni portes à lui n'a pas de rencontre : la mort y reste cell
 | `BossHealth` | `SSMP/Game/Client/Entity/BossHealth.cs` | règle 6 : PV des boss multipliés à l'apparition (indépendant de la rencontre) |
 | Victoires communes | `SSMP/Resource/save-data.json` (`defeated*`, `encountered*` en `Server`), logs `[Victory]` dans `SaveManager` | règle 5 |
 | `MusicComponent` | `SSMP/Game/Client/Entity/Component/MusicComponent.cs` | musique de boss jouée par le FSM d'une entité, gardée pour les retardataires ; remise à « aucune » à la fin d'une rencontre (`ResetHostMusic`) |
-| `LayerComponent` | `SSMP/Game/Client/Entity/Component/LayerComponent.cs` | couche physique des ennemis (sortis du décor) pour les retardataires ; pas lié à la rencontre |
+| `VisualStateComponent` | `SSMP/Game/Client/Entity/Component/VisualStateComponent.cs` | état visuel de chaque entité comme chez l'hôte de salle : couche physique, position Z, teinte du sprite, enfants actifs (ennemis sortis du décor), pour les présents et les retardataires ; pas lié à la rencontre. Remplace `LayerComponent` et `ZPositionComponent` (nfloch/ssmp-bugs#5) |
 | Rejeu `SendEventToRegister` | `SSMP/Game/Client/Entity/Action/EntityFsmActions.Fsm.cs` | rejoue chez les clients l'événement global de fin d'un boss (`BEAST DEFEATED`) : c'est lui qui lance la fin du boss dans chaque jeu |
 | `ReleaseHostFromBattle` | `HealthManagerComponent` | chez un client, retire l'objet hôte d'un ennemi mort de sa vague : les vagues locales restent au même point que chez l'hôte, pour qu'un client qui devient hôte continue le combat |
 | Fin par la sauvegarde (correctif 7) | `SaveManager`, objets persistants `BattleScene` | une arène marquée terminée dans la sauvegarde commune pendant qu'on est dans la salle se finit par `Encounter.EndLocally` ; seul chemin pour une arène sans entité synchronisée |
@@ -89,7 +89,7 @@ EncounterComponent (propriétaire)
    boss ; `EncounterComponent` envoie `Started`. Chaque client démarre son arène quand son héros est dans la zone
    (murs, caméra, musique de l'arène), et ignore son propre déclencheur. Pour un boss, les FSM locaux de chaque jeu
    ferment ses portes ; à défaut (retardataire), `EncounterComponent` les ferme après 1 s dans la zone.
-4. **Combat.** Les ennemis suivent l'hôte de salle (positions, FSM, PV, actions rejouées), `LayerComponent` et
+4. **Combat.** Les ennemis suivent l'hôte de salle (positions, FSM, PV, actions rejouées), `VisualStateComponent` et
    `MusicComponent` couvrent les retardataires. Mort du héros dans la zone d'une rencontre `Started` : voir
    « Morts ».
 5. **Fin.** Chez l'hôte, l'arène se termine (`DoEndBattle`) ou les boss sont morts, ou le jeu rouvre les portes du
@@ -144,7 +144,7 @@ cachent un joueur à terre.
 | 4. Monstres synchronisés | entités SSMP (hôte de salle) |
 | 5. Victoires communes | `save-data.json`, `SaveManager` (`[Victory]`) |
 | 6. PV des boss multipliés | `BossHealth`, réglage `BossHealthMultiplier` |
-| 7. L'arène suit l'hôte ; un retardataire retrouve l'état | `EncounterComponent` (état stocké par le serveur), `EncounterTracker` (fin locale d'un client retenue), `LayerComponent`, `MusicComponent` |
+| 7. L'arène suit l'hôte ; un retardataire retrouve l'état | `EncounterComponent` (état stocké par le serveur), `EncounterTracker` (fin locale d'un client retenue), `VisualStateComponent`, `MusicComponent` |
 | 8. Mort hors arène : jeu normal | `DownedManager.OnHeroDie` (`Death outside a battle in progress`) |
 
 ## Logs
