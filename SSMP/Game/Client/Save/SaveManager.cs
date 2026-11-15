@@ -247,6 +247,7 @@ internal class SaveManager {
         OnUpdatePlayerData();
         OnUpdateCompounds();
         _inventorySync.Update();
+        _saveChanges.Update();
     }
 
     /// <summary>

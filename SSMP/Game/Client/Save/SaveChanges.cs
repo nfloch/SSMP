@@ -20,8 +20,59 @@ internal class SaveChanges {
     /// <param name="name">The name of the PlayerData entry.</param>
     public void ApplyPlayerDataSaveChange(string? name) {
         Logger.Debug($"ApplyPlayerData for name: {name}");
-        
-        var currentScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+
+        if (name != null && IsGameMapVariable(name)) {
+            _gameMapRefreshPending = true;
+        }
+    }
+
+    /// <summary>
+    /// Whether a change from another player received since the last <see cref="Update"/> changes what the game map
+    /// shows.
+    /// </summary>
+    private bool _gameMapRefreshPending;
+
+    /// <summary>
+    /// Whether the given PlayerData entry changes what the game map shows: an area map, the quill, the rooms mapped
+    /// or visited, or a pin. The game reads them in <c>GameMap.SetupMap</c>, which it only runs on its own events
+    /// (buying a map, mapping at a bench, entering a new room); a value received from another player is otherwise
+    /// only drawn after one of these.
+    /// </summary>
+    /// <param name="name">The name of the PlayerData entry.</param>
+    /// <returns>true if the game map has to be set up again, false otherwise.</returns>
+    private static bool IsGameMapVariable(string name) {
+        // Same rule as PlayerData.MapBoolList for the area maps
+        if (name.StartsWith("Has") && name.EndsWith("Map") && name != "HasAnyMap") {
+            return true;
+        }
+
+        return name.StartsWith("hasPin") || name is "mapAllRooms" or "hasQuill" or "scenesMapped" or "scenesVisited"
+            or "scenesEncounteredBench" or "scenesEncounteredCocoon";
+    }
+
+    /// <summary>
+    /// Sets the game map up again, once for all the map changes received since the last call, as the game does
+    /// for the player who bought the map (<c>ShopItem</c> calls <c>GameManager.UpdateGameMap</c>). Only the display
+    /// is refreshed: it does not map the local player's visited rooms, which stays the bench's job.
+    /// </summary>
+    public void Update() {
+        if (!_gameMapRefreshPending) {
+            return;
+        }
+
+        var gm = global::GameManager.instance;
+        if (!gm || !gm.gameMap) {
+            // No map yet (menu, loading): the game sets it up from PlayerData when it creates it
+            return;
+        }
+
+        _gameMapRefreshPending = false;
+        try {
+            gm.gameMap.SetupMap();
+            Logger.Info("[MapSync] Map changed by another player, game map set up again");
+        } catch (System.Exception e) {
+            Logger.Warn($"[MapSync] Could not set up the game map again: {e}");
+        }
     }
 
     /// <summary>
