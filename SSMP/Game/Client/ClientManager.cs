@@ -622,10 +622,8 @@ internal class ClientManager : IClientManager {
 
         _addonManager.ClearNetworkedAddonIds();
 
-        // Check whether the game is in the pause menu and reset timescale to 0 in that case
-        if (UIManager.instance.uiState.Equals(UIState.PAUSED)) {
-            PauseManager.SetTimeScale(0);
-        }
+        // Freeze time again if the pause menu or the inventory is open, as vanilla does offline
+        PauseManager.RestoreVanillaTimeOnDisconnect();
 
         // Deregister the hooks and handlers
         DeregisterHooks();
