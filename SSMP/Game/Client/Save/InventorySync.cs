@@ -539,6 +539,24 @@ internal class InventorySync {
         };
     }
 
+    /// <summary>
+    /// Equips a silk skill received from another player on the current crest, as the game does for the player who
+    /// gets it (the altars run AutoEquipTool before the skill message): the skill is usable at once, and the crest
+    /// gets its slot data, which the skill message needs (Papaours, 15/11, nfloch/ssmp-bugs#7).
+    /// </summary>
+    private static void AutoEquipSilkSkill(ToolItem tool) {
+        if (tool.Type != ToolItemType.Skill) {
+            return;
+        }
+
+        try {
+            ToolItemManager.AutoEquip(tool);
+            Logger.Info($"[InvSync] Silk skill '{tool.name}' received, equipped on the current crest");
+        } catch (Exception e) {
+            Logger.Warn($"[InvSync] Could not equip the received silk skill '{tool.name}': {e}");
+        }
+    }
+
     private static FieldDef[] CreateFields() => [
         // Tools and silk skills: unlocked is a union, hidden (replaced by an upgrade or consumed) the last change.
         // The ammo (AmountLeft) and the "seen" markers stay per player.
@@ -554,6 +572,7 @@ internal class InventorySync {
                     if (tool) {
                         // Without popup, like a silent "Get": the game still marks it as new in the inventory
                         tool.Unlock(null, ToolItem.PopupFlags.None);
+                        AutoEquipSilkSkill(tool);
                     } else {
                         data.IsUnlocked = true;
                         list.SetData(update.Name, data);
