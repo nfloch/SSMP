@@ -19,6 +19,7 @@ joueurs qui se connectent), `SyncType: Player` = propre à chaque joueur.
 | Objets du monde : leviers, portes, ponts, coffres, ramassables, rochers de géo (`persistentBoolItems`, `geoRocks`…) | base de world-sync |
 | Salles cartographiées et visitées (`scenesMapped`, `scenesVisited`) | base de world-sync |
 | Cartes de zone, plume, épingles, marqueurs (`Has*Map`, `hasQuill`, `QuillState`, `hasPin*`, `hasMarker*`, `mapAllRooms`) | 14/11, nfloch/ssmp-bugs#1 |
+| Marqueurs posés à la main sur la carte (`placedMarkers`), et donc le nombre restant de chaque type (9 au plus) : une ressource commune | 15/11, nfloch/ssmp-bugs#1 |
 | Compétences acquises : dash, cape, saut mural, double saut, grappin, envol de soie, attaque chargée, parade, Needolin et son amélioration, compétences de soie (`has*`) | 14/11, demande de Papaours |
 | Bancs achetés, péages (machines à péage) | correctifs du 13/11 (SUIVI.md) |
 | Victoires de boss (`defeated*`) | 14/11 (remplace « chacun sa victoire » du 13/11) |
@@ -97,8 +98,9 @@ retrouver l'état actuel de la salle**, pas l'état de départ (Papaours, 14/11 
 ## Ennemis
 
 - Un ennemi doit pouvoir voir, viser et toucher **tous** les joueurs, pas seulement l'hôte de salle.
-- Règle de choix de la cible : **à décider** (nfloch/ssmp-bugs#3 : le joueur qui le frappe, ou le plus proche avec
-  une distance corrigée).
+- Règle de choix de la cible : **celle en place est gardée** (Papaours, 15/11, nfloch/ssmp-bugs#3) : au repérage,
+  l'ennemi vise le joueur le plus proche, et ne change que si un autre est nettement plus près. Le journal
+  `[Target]` sert à vérifier qu'elle se comporte bien.
 
 ## Builds
 
