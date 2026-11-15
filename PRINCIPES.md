@@ -27,7 +27,8 @@ joueurs qui se connectent), `SyncType: Player` = propre à chaque joueur.
 
 **Compétence acquise en cours de partie** : quand un joueur obtient une compétence normalement, le tutoriel
 d'obtention (l'écran qui présente la compétence et ses touches) s'affiche aussi chez tous les autres joueurs
-connectés (Papaours, 14/11).
+connectés (Papaours, 14/11). Une compétence de soie reçue est aussi **équipée** sur le blason en cours, comme pour celui qui la
+trouve (15/11, nfloch/ssmp-bugs#7).
 
 | Propre à chaque joueur | Décision |
 |---|---|

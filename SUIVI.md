@@ -333,6 +333,8 @@ autres peuvent arriver n'importe où et seront repris avec les prochains logs (h
 43. **Animations des compétences de soie absentes dans une nouvelle partie (#15)** : les crochets d'animation du héros
     sont réessayés au démarrage du héros et à chaque changement de salle, une seule fois par héros (remplace le
     try/catch de 25e5381). Logs `Created the hero animation hooks (attempt N)`.
+44. **Compétence de soie reçue équipée (#7)** : `InventorySync` appelle `ToolItemManager.AutoEquip` comme les autels
+    du jeu (log `[InvSync] Silk skill '…' received, equipped`).
 - Ces correctifs ajoutent des paquets et des composants réseau : tout le monde doit avoir le même build.
 - Logs : chaque joueur écrit maintenant son inventaire, son équipement et ses capacités (`[Inventory]`) en entrant
   dans la partie et à chaque banc.
